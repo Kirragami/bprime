@@ -22,6 +22,9 @@ func New(cfg config.Config, h *handler.Handler) http.Handler {
 	mux.HandleFunc("GET /api/me", h.Me)
 	mux.HandleFunc("GET /api/friends", h.ListFriends)
 	mux.HandleFunc("POST /api/friends", h.AddFriend)
+	mux.HandleFunc("POST /api/friends/{id}/accept", h.AcceptFriend)
+	mux.HandleFunc("POST /api/friends/{id}/reject", h.RejectFriend)
+	mux.HandleFunc("GET /api/events", h.Events)
 	mux.HandleFunc("/api/", http.NotFound)
 
 	if dir := strings.TrimSpace(cfg.StaticDir); dir != "" {

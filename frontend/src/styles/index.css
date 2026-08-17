@@ -353,6 +353,39 @@ button.cube-copy {
   opacity: 0.7;
 }
 
+.friends-list__items--pending {
+  opacity: 0.7;
+}
+
+.friends-list__request {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.35rem 0.7rem;
+}
+
+.friends-list__actions {
+  display: flex;
+  gap: 0.55rem;
+}
+
+.friends-list__action {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+  cursor: pointer;
+}
+
+.friends-list__action:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
 .add-friend-row {
   display: flex;
   align-items: stretch;

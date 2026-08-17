@@ -1,7 +1,19 @@
 import { useCallback, useEffect, useState } from "react";
-import { addFriend, listFriends } from "../api/friends";
+import {
+  acceptFriend,
+  addFriend,
+  friendsEventsUrl,
+  listFriends,
+  rejectFriend,
+} from "../api/friends";
 import { ApiError } from "../api/client";
-import type { User } from "../types";
+import type { FriendGraph } from "../types";
+
+const emptyGraph: FriendGraph = {
+  friends: [],
+  incoming: [],
+  outgoing: [],
+};
 
 function errorMessage(err: unknown) {
   if (err instanceof ApiError) {
@@ -14,22 +26,23 @@ function errorMessage(err: unknown) {
 }
 
 export function useFriends(enabled: boolean) {
-  const [friends, setFriends] = useState<User[]>([]);
+  const [graph, setGraph] = useState<FriendGraph>(emptyGraph);
   const [pending, setPending] = useState(false);
+  const [actingId, setActingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!enabled) {
-      setFriends([]);
+      setGraph(emptyGraph);
       return;
     }
     const data = await listFriends();
-    setFriends(data);
+    setGraph(data);
   }, [enabled]);
 
   useEffect(() => {
     if (!enabled) {
-      setFriends([]);
+      setGraph(emptyGraph);
       return;
     }
 
@@ -37,12 +50,12 @@ export function useFriends(enabled: boolean) {
     listFriends()
       .then((data) => {
         if (!cancelled) {
-          setFriends(data);
+          setGraph(data);
         }
       })
       .catch(() => {
         if (!cancelled) {
-          setFriends([]);
+          setGraph(emptyGraph);
         }
       });
 
@@ -50,6 +63,23 @@ export function useFriends(enabled: boolean) {
       cancelled = true;
     };
   }, [enabled]);
+
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
+    const source = new EventSource(friendsEventsUrl(), { withCredentials: true });
+    const onFriends = () => {
+      void refresh();
+    };
+    source.addEventListener("friends", onFriends);
+
+    return () => {
+      source.removeEventListener("friends", onFriends);
+      source.close();
+    };
+  }, [enabled, refresh]);
 
   const sendRequest = useCallback(
     async (username: string) => {
@@ -68,5 +98,47 @@ export function useFriends(enabled: boolean) {
     [refresh],
   );
 
-  return { friends, pending, error, sendRequest };
+  const acceptRequest = useCallback(
+    async (id: number) => {
+      setActingId(id);
+      setError(null);
+      try {
+        await acceptFriend(id);
+        await refresh();
+      } catch (err) {
+        setError(errorMessage(err));
+      } finally {
+        setActingId(null);
+      }
+    },
+    [refresh],
+  );
+
+  const rejectRequest = useCallback(
+    async (id: number) => {
+      setActingId(id);
+      setError(null);
+      try {
+        await rejectFriend(id);
+        await refresh();
+      } catch (err) {
+        setError(errorMessage(err));
+      } finally {
+        setActingId(null);
+      }
+    },
+    [refresh],
+  );
+
+  return {
+    friends: graph.friends,
+    incoming: graph.incoming,
+    outgoing: graph.outgoing,
+    pending,
+    actingId,
+    error,
+    sendRequest,
+    acceptRequest,
+    rejectRequest,
+  };
 }

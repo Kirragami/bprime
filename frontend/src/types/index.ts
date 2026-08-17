@@ -14,3 +14,15 @@ export type User = {
   username: string;
   createdAt: string;
 };
+
+export type FriendRequest = {
+  id: number;
+  user: User;
+  createdAt: string;
+};
+
+export type FriendGraph = {
+  friends: User[];
+  incoming: FriendRequest[];
+  outgoing: FriendRequest[];
+};

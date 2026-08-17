@@ -6,6 +6,7 @@ import (
 
 	"bprime/internal/auth"
 	"bprime/internal/config"
+	"bprime/internal/realtime"
 	"bprime/internal/repository"
 )
 
@@ -15,6 +16,7 @@ type Handler struct {
 	users        *repository.UserRepository
 	sessions     *repository.SessionRepository
 	friends      *repository.FriendRepository
+	events       *realtime.Hub
 	limiter      *auth.Limiter
 	dummyHash    string
 	sessionTTL   time.Duration
@@ -40,6 +42,7 @@ func New(
 		users:        users,
 		sessions:     sessions,
 		friends:      friends,
+		events:       realtime.NewHub(),
 		limiter:      auth.NewLimiter(authRateLimit, authRateWindow),
 		dummyHash:    dummyHash,
 		sessionTTL:   cfg.SessionTTL,

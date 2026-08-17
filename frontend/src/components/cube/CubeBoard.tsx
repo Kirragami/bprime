@@ -13,6 +13,7 @@ import {
   type TurnDir,
 } from "../../cube";
 import { AddFriendForm } from "../friends/AddFriendForm";
+import { FriendsList } from "../friends/FriendsList";
 import { useAuth } from "../../hooks/useAuth";
 import { useFriends } from "../../hooks/useFriends";
 import { CubeView } from "./CubeView";
@@ -196,18 +197,14 @@ export function CubeBoard() {
         }
         if (slot === "friends") {
           return (
-            <div className="friends-list">
-              <p className="cube-copy">friends</p>
-              {friends.friends.length === 0 ? (
-                <p className="friends-list__empty">no friends yet</p>
-              ) : (
-                <ul className="friends-list__items">
-                  {friends.friends.map((friend) => (
-                    <li key={friend.id}>{friend.username}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            <FriendsList
+              friends={friends.friends}
+              incoming={friends.incoming}
+              outgoing={friends.outgoing}
+              actingId={friends.actingId}
+              onAccept={(id) => void friends.acceptRequest(id)}
+              onReject={(id) => void friends.rejectRequest(id)}
+            />
           );
         }
         if (slot === "add-friend") {

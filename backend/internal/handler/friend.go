@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"bprime/internal/repository"
@@ -20,13 +21,13 @@ func (h *Handler) ListFriends(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	friends, err := h.friends.List(r.Context(), user.ID)
+	graph, err := h.friends.List(r.Context(), user.ID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list friends")
 		return
 	}
 
-	writeJSON(w, http.StatusOK, friends)
+	writeJSON(w, http.StatusOK, graph)
 }
 
 func (h *Handler) AddFriend(w http.ResponseWriter, r *http.Request) {
@@ -58,7 +59,8 @@ func (h *Handler) AddFriend(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.friends.Add(r.Context(), user.ID, record.ID); err != nil {
+	status, err := h.friends.Request(r.Context(), user.ID, record.ID)
+	if err != nil {
 		if errors.Is(err, repository.ErrSelfFriend) {
 			writeError(w, http.StatusBadRequest, "you cannot add yourself")
 			return
@@ -67,9 +69,66 @@ func (h *Handler) AddFriend(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusConflict, "already friends")
 			return
 		}
+		if errors.Is(err, repository.ErrAlreadyPending) {
+			writeError(w, http.StatusConflict, "request already sent")
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "failed to add friend")
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, record.User)
+	h.events.Notify(user.ID, record.ID)
+	writeJSON(w, http.StatusCreated, map[string]any{
+		"status": status,
+		"user":   record.User,
+	})
+}
+
+func (h *Handler) AcceptFriend(w http.ResponseWriter, r *http.Request) {
+	h.respondToFriend(w, r, true)
+}
+
+func (h *Handler) RejectFriend(w http.ResponseWriter, r *http.Request) {
+	h.respondToFriend(w, r, false)
+}
+
+func (h *Handler) respondToFriend(w http.ResponseWriter, r *http.Request, accept bool) {
+	user, ok := h.userFromRequest(r)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "not signed in")
+		return
+	}
+
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil || id < 1 {
+		writeError(w, http.StatusBadRequest, "invalid request")
+		return
+	}
+
+	row, err := h.friends.Get(r.Context(), id)
+	if errors.Is(err, repository.ErrRequestNotFound) {
+		writeError(w, http.StatusNotFound, "request not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to update request")
+		return
+	}
+
+	if accept {
+		err = h.friends.Accept(r.Context(), id, user.ID)
+	} else {
+		err = h.friends.Reject(r.Context(), id, user.ID)
+	}
+	if errors.Is(err, repository.ErrRequestNotFound) {
+		writeError(w, http.StatusNotFound, "request not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to update request")
+		return
+	}
+
+	h.events.Notify(row.RequesterID, row.AddresseeID)
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
