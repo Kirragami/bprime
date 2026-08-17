@@ -30,6 +30,7 @@ import { SoloLookSetting } from "../game/SoloLookSetting";
 import { SoloPreview } from "../game/SoloPreview";
 import { SoloScramble } from "../game/SoloScramble";
 import { SoloTimer } from "../game/SoloTimer";
+import { SoloTitle } from "../game/SoloTitle";
 import { warmScrambler } from "../../game/scramble";
 import { useSoloSession } from "../../hooks/useSoloSession";
 import { useSoloSettings } from "../../hooks/useSoloSettings";
@@ -381,6 +382,9 @@ export function CubeBoard() {
               onSubmit={friends.sendRequest}
             />
           );
+        }
+        if (slot === "solo-title") {
+          return <SoloTitle />;
         }
         if (slot === "solo-history") {
           return <SoloHistory attempts={solo.attempts} />;

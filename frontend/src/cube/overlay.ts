@@ -30,11 +30,11 @@ export const LOGGED_OUT_SCREEN: BoardScreen = {
 
 export function overlayFor(screen: BoardScreen): Overlay {
   if (screen.play === "solo") {
-    return [null, "solo-history", null, "solo-scramble", "solo-stage", null, "solo-preview", "solo-actions", "settings"];
+    return ["solo-title", "solo-history", null, "solo-scramble", "solo-stage", null, "solo-preview", "solo-actions", "settings"];
   }
 
   if (screen.play === "solo-settings") {
-    return [null, "solo-history", "solo-look", "solo-scramble", "solo-stage", "solo-clock", "solo-preview", "solo-actions", "solo-back"];
+    return ["solo-title", "solo-history", "solo-look", "solo-scramble", "solo-stage", "solo-clock", "solo-preview", "solo-actions", "solo-back"];
   }
 
   const top: RowSlots =

@@ -532,6 +532,41 @@ body {
   outline: none;
 }
 
+.solo-title {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.15rem;
+  width: 100%;
+  height: 100%;
+  padding: 0.8rem 1rem;
+  color: var(--tile-ink);
+}
+
+.solo-title__icon {
+  width: clamp(3.4rem, 8.4vmin, 5.2rem);
+  height: clamp(3.4rem, 8.4vmin, 5.2rem);
+  color: inherit;
+}
+
+.solo-title__icon .mode-diamond__face {
+  width: 100%;
+  height: 100%;
+}
+
+.solo-title__name {
+  margin: 0;
+  font-family: "Bungee", "Archivo Black", sans-serif;
+  font-size: clamp(3.4rem, 9.4vmin, 6.6rem);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  line-height: 0.88;
+  text-transform: lowercase;
+}
+
 .solo-stage,
 .solo-result {
   position: relative;
