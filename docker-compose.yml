@@ -5,11 +5,13 @@ services:
     environment:
       PORT: "8080"
       DATABASE_PATH: /data/bprime.db
+      UPLOAD_DIR: /data/avatars
       STATIC_DIR: /app/web
-      CORS_ORIGIN: http://localhost:8080
+      CORS_ORIGIN: http://localhost:8081
       COOKIE_SECURE: "false"
     volumes:
       - ./data:/data
+      - ./data/avatars:/data/avatars
     ports:
-      - "8080:8080"
+      - "8081:8080"
     restart: unless-stopped

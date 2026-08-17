@@ -1,4 +1,4 @@
-import { request } from "./client";
+import { request, upload } from "./client";
 import type { User } from "../types";
 
 export function register(username: string, password: string) {
@@ -23,4 +23,10 @@ export function logout() {
 
 export function getMe() {
   return request<User>("/api/me");
+}
+
+export function uploadAvatar(file: File) {
+  const body = new FormData();
+  body.append("file", file);
+  return upload<User>("/api/me/avatar", body);
 }

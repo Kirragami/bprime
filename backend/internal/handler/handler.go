@@ -2,6 +2,7 @@ package handler
 
 import (
 	"database/sql"
+	"os"
 	"time"
 
 	"bprime/internal/auth"
@@ -21,6 +22,7 @@ type Handler struct {
 	dummyHash    string
 	sessionTTL   time.Duration
 	cookieSecure bool
+	uploadDir    string
 }
 
 func New(
@@ -36,6 +38,8 @@ func New(
 		dummyHash = "$2a$12$C6UzMDM.H6DfHr/e5KAh.OFr5ynQpzwkC.S0lUqQ0q0q0q0q0q0q."
 	}
 
+	_ = os.MkdirAll(cfg.UploadDir, 0o755)
+
 	return &Handler{
 		db:           db,
 		items:        items,
@@ -47,5 +51,6 @@ func New(
 		dummyHash:    dummyHash,
 		sessionTTL:   cfg.SessionTTL,
 		cookieSecure: cfg.CookieSecure,
+		uploadDir:    cfg.UploadDir,
 	}
 }

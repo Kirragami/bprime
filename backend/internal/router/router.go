@@ -20,6 +20,8 @@ func New(cfg config.Config, h *handler.Handler) http.Handler {
 	mux.HandleFunc("POST /api/login", h.Login)
 	mux.HandleFunc("POST /api/logout", h.Logout)
 	mux.HandleFunc("GET /api/me", h.Me)
+	mux.HandleFunc("POST /api/me/avatar", h.UploadAvatar)
+	mux.HandleFunc("GET /api/avatars/{name}", h.ServeAvatar)
 	mux.HandleFunc("GET /api/friends", h.ListFriends)
 	mux.HandleFunc("POST /api/friends", h.AddFriend)
 	mux.HandleFunc("POST /api/friends/{id}/accept", h.AcceptFriend)

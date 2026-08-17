@@ -128,7 +128,7 @@ func (r *FriendRepository) List(ctx context.Context, userID int64) (models.Frien
 	}
 
 	friends, err := r.queryUsers(ctx, `
-		SELECT u.id, u.username, u.created_at
+		SELECT u.id, u.username, u.created_at, u.avatar_url
 		FROM friendships f
 		JOIN users u ON u.id = CASE
 			WHEN f.requester_id = ? THEN f.addressee_id
@@ -144,7 +144,7 @@ func (r *FriendRepository) List(ctx context.Context, userID int64) (models.Frien
 	graph.Friends = friends
 
 	incoming, err := r.queryRequests(ctx, `
-		SELECT f.id, u.id, u.username, u.created_at, f.created_at
+		SELECT f.id, u.id, u.username, u.created_at, u.avatar_url, f.created_at
 		FROM friendships f
 		JOIN users u ON u.id = f.requester_id
 		WHERE f.addressee_id = ? AND f.status = 'pending'
@@ -156,7 +156,7 @@ func (r *FriendRepository) List(ctx context.Context, userID int64) (models.Frien
 	graph.Incoming = incoming
 
 	outgoing, err := r.queryRequests(ctx, `
-		SELECT f.id, u.id, u.username, u.created_at, f.created_at
+		SELECT f.id, u.id, u.username, u.created_at, u.avatar_url, f.created_at
 		FROM friendships f
 		JOIN users u ON u.id = f.addressee_id
 		WHERE f.requester_id = ? AND f.status = 'pending'
@@ -193,8 +193,8 @@ func (r *FriendRepository) queryUsers(ctx context.Context, query string, args ..
 
 	users := make([]models.User, 0)
 	for rows.Next() {
-		var user models.User
-		if err := rows.Scan(&user.ID, &user.Username, &user.CreatedAt); err != nil {
+		user, err := scanUser(rows)
+		if err != nil {
 			return nil, err
 		}
 		users = append(users, user)
@@ -212,14 +212,19 @@ func (r *FriendRepository) queryRequests(ctx context.Context, query string, args
 	requests := make([]models.FriendRequest, 0)
 	for rows.Next() {
 		var item models.FriendRequest
+		var avatar sql.NullString
 		if err := rows.Scan(
 			&item.ID,
 			&item.User.ID,
 			&item.User.Username,
 			&item.User.CreatedAt,
+			&avatar,
 			&item.CreatedAt,
 		); err != nil {
 			return nil, err
+		}
+		if avatar.Valid {
+			item.User.AvatarURL = avatar.String
 		}
 		requests = append(requests, item)
 	}

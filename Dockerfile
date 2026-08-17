@@ -27,7 +27,7 @@ RUN go build -o /out/api ./cmd/api
 FROM alpine:3.21
 
 WORKDIR /app
-RUN mkdir -p /data
+RUN mkdir -p /data /data/avatars
 
 COPY --from=backend /out/api /app/api
 COPY --from=frontend /app/dist /app/web

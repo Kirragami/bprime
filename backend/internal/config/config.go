@@ -2,12 +2,14 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 	"time"
 )
 
 type Config struct {
 	Port         string
 	DatabasePath string
+	UploadDir    string
 	StaticDir    string
 	CORSOrigin   string
 	CookieSecure bool
@@ -15,9 +17,11 @@ type Config struct {
 }
 
 func Load() Config {
+	databasePath := env("DATABASE_PATH", "./data/bprime.db")
 	return Config{
 		Port:         env("PORT", "8080"),
-		DatabasePath: env("DATABASE_PATH", "./data/bprime.db"),
+		DatabasePath: databasePath,
+		UploadDir:    env("UPLOAD_DIR", filepath.Join(filepath.Dir(databasePath), "avatars")),
 		StaticDir:    env("STATIC_DIR", ""),
 		CORSOrigin:   env("CORS_ORIGIN", "http://localhost:5173"),
 		CookieSecure: env("COOKIE_SECURE", "") == "true",

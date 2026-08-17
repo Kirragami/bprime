@@ -12,6 +12,7 @@ export type Item = {
 export type User = {
   id: number;
   username: string;
+  avatarUrl?: string;
   createdAt: string;
 };
 

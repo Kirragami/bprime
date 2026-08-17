@@ -32,14 +32,13 @@ func (r *SessionRepository) Create(ctx context.Context, tokenHash string, userID
 }
 
 func (r *SessionRepository) UserForToken(ctx context.Context, tokenHash string, now time.Time) (models.User, error) {
-	var user models.User
-	err := r.db.QueryRowContext(ctx, `
-		SELECT users.id, users.username, users.created_at
+	user, err := scanUser(r.db.QueryRowContext(ctx, `
+		SELECT users.id, users.username, users.created_at, users.avatar_url
 		FROM sessions
 		JOIN users ON users.id = sessions.user_id
 		WHERE sessions.token_hash = ?
 		  AND sessions.expires_at > ?
-	`, tokenHash, now.UTC().Format(time.RFC3339Nano)).Scan(&user.ID, &user.Username, &user.CreatedAt)
+	`, tokenHash, now.UTC().Format(time.RFC3339Nano)))
 	if errors.Is(err, sql.ErrNoRows) {
 		return models.User{}, ErrSessionNotFound
 	}

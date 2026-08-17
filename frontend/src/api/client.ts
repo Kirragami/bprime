@@ -35,3 +35,30 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   return (await response.json()) as T;
 }
+
+export function mediaUrl(path: string) {
+  return `${API_BASE}${path}`;
+}
+
+export async function upload<T>(path: string, body: FormData): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    credentials: "include",
+    body,
+  });
+
+  if (!response.ok) {
+    let message = response.statusText;
+    try {
+      const parsed = (await response.json()) as { error?: string };
+      if (parsed.error) {
+        message = parsed.error;
+      }
+    } catch {
+      // keep status text
+    }
+    throw new ApiError(response.status, message);
+  }
+
+  return (await response.json()) as T;
+}

@@ -42,12 +42,11 @@ func (r *UserRepository) Create(ctx context.Context, username, passwordHash stri
 }
 
 func (r *UserRepository) GetByID(ctx context.Context, id int64) (models.User, error) {
-	var user models.User
-	err := r.db.QueryRowContext(ctx, `
-		SELECT id, username, created_at
+	user, err := scanUser(r.db.QueryRowContext(ctx, `
+		SELECT id, username, created_at, avatar_url
 		FROM users
 		WHERE id = ?
-	`, id).Scan(&user.ID, &user.Username, &user.CreatedAt)
+	`, id))
 	if errors.Is(err, sql.ErrNoRows) {
 		return models.User{}, ErrUserNotFound
 	}
@@ -59,16 +58,44 @@ func (r *UserRepository) GetByID(ctx context.Context, id int64) (models.User, er
 
 func (r *UserRepository) GetByUsername(ctx context.Context, username string) (models.UserRecord, error) {
 	var record models.UserRecord
+	var avatar sql.NullString
 	err := r.db.QueryRowContext(ctx, `
-		SELECT id, username, created_at, password_hash
+		SELECT id, username, created_at, avatar_url, password_hash
 		FROM users
 		WHERE username = ?
-	`, username).Scan(&record.ID, &record.Username, &record.CreatedAt, &record.PasswordHash)
+	`, username).Scan(&record.ID, &record.Username, &record.CreatedAt, &avatar, &record.PasswordHash)
 	if errors.Is(err, sql.ErrNoRows) {
 		return models.UserRecord{}, ErrUserNotFound
 	}
 	if err != nil {
 		return models.UserRecord{}, fmt.Errorf("get user by username: %w", err)
 	}
+	if avatar.Valid {
+		record.AvatarURL = avatar.String
+	}
 	return record, nil
+}
+
+func (r *UserRepository) SetAvatar(ctx context.Context, userID int64, avatarURL string) error {
+	_, err := r.db.ExecContext(ctx, `
+		UPDATE users
+		SET avatar_url = ?
+		WHERE id = ?
+	`, avatarURL, userID)
+	if err != nil {
+		return fmt.Errorf("set avatar: %w", err)
+	}
+	return nil
+}
+
+func scanUser(row interface{ Scan(dest ...any) error }) (models.User, error) {
+	var user models.User
+	var avatar sql.NullString
+	if err := row.Scan(&user.ID, &user.Username, &user.CreatedAt, &avatar); err != nil {
+		return models.User{}, err
+	}
+	if avatar.Valid {
+		user.AvatarURL = avatar.String
+	}
+	return user, nil
 }

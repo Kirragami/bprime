@@ -31,10 +31,12 @@ function OverlayCell({
   const content = slot ? renderSlot?.(slot, { active: true }) : null;
   const ink = inkForTile(color);
   const isTitle = slot === "title";
+  const isProfile = slot === "profile";
   const className = [
     "cube-overlay__cell",
     content && isTitle ? "cube-overlay__cell--form" : "",
-    content && !isTitle ? "cube-overlay__cell--copy" : "",
+    content && isProfile ? "cube-overlay__cell--profile" : "",
+    content && !isTitle && !isProfile ? "cube-overlay__cell--copy" : "",
   ]
     .filter(Boolean)
     .join(" ");

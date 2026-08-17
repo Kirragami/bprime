@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { LoginForm } from "../auth/LoginForm";
+import { ProfileTile } from "../auth/ProfileTile";
 import { RegisterForm } from "../auth/RegisterForm";
 import {
   LOGGED_OUT_SCREEN,
@@ -159,7 +160,13 @@ export function CubeBoard() {
         }
         if (slot === "profile") {
           return auth.user ? (
-            <p className="cube-copy">hey {auth.user.username}</p>
+            <ProfileTile
+              user={auth.user}
+              errorMessage={auth.errorMessage}
+              onUpload={async (file) => {
+                await auth.setAvatar(file);
+              }}
+            />
           ) : null;
         }
         if (slot === "settings") {

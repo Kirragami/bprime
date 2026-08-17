@@ -1,4 +1,6 @@
+import type { ReactNode } from "react";
 import type { FriendRequest, User } from "../../types";
+import { FriendAvatar } from "./FriendAvatar";
 
 type FriendsListProps = {
   friends: User[];
@@ -8,6 +10,27 @@ type FriendsListProps = {
   onAccept: (id: number) => void;
   onReject: (id: number) => void;
 };
+
+function Person({
+  user,
+  pendingLabel,
+  children,
+}: {
+  user: User;
+  pendingLabel?: string;
+  children?: ReactNode;
+}) {
+  return (
+    <li className="friends-list__person">
+      <FriendAvatar user={user} />
+      <span className="friends-list__name">
+        {user.username}
+        {pendingLabel ? <span className="friends-list__pending"> {pendingLabel}</span> : null}
+      </span>
+      {children}
+    </li>
+  );
+}
 
 export function FriendsList({
   friends,
@@ -27,8 +50,7 @@ export function FriendsList({
       {incoming.length > 0 ? (
         <ul className="friends-list__items">
           {incoming.map((request) => (
-            <li key={`in-${request.id}`} className="friends-list__request">
-              <span>{request.user.username}</span>
+            <Person key={`in-${request.id}`} user={request.user}>
               <span className="friends-list__actions">
                 <button
                   type="button"
@@ -47,7 +69,7 @@ export function FriendsList({
                   reject
                 </button>
               </span>
-            </li>
+            </Person>
           ))}
         </ul>
       ) : null}
@@ -55,7 +77,7 @@ export function FriendsList({
       {friends.length > 0 ? (
         <ul className="friends-list__items">
           {friends.map((friend) => (
-            <li key={friend.id}>{friend.username}</li>
+            <Person key={friend.id} user={friend} />
           ))}
         </ul>
       ) : null}
@@ -63,7 +85,7 @@ export function FriendsList({
       {outgoing.length > 0 ? (
         <ul className="friends-list__items friends-list__items--pending">
           {outgoing.map((request) => (
-            <li key={`out-${request.id}`}>{request.user.username} pending</li>
+            <Person key={`out-${request.id}`} user={request.user} pendingLabel="pending" />
           ))}
         </ul>
       ) : null}
