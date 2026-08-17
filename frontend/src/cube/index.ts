@@ -15,6 +15,7 @@ export {
 } from "./state";
 export {
   LOGGED_OUT_SCREEN,
+  incomingOverlayForTurn,
   overlayFor,
   colSlots,
   rowSlots,
@@ -22,7 +23,7 @@ export {
   withCol,
   withRow,
 } from "./overlay";
-export type { BoardScreen, Overlay, RowSlots } from "./overlay";
+export type { BoardScreen, Overlay, OverlayTurn, RowSlots } from "./overlay";
 export type { CubeController } from "./useCube";
 export { useCube } from "./useCube";
 export type {

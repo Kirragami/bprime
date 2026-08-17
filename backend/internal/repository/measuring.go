@@ -110,6 +110,33 @@ func (r *MeasuringRepository) Get(ctx context.Context, userID, id int64) (models
 	return item, rows.Err()
 }
 
+func (r *MeasuringRepository) BestTimes(ctx context.Context, userID int64, limit int) ([]models.BestTime, error) {
+	if limit < 1 {
+		limit = 5
+	}
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT average_ms, created_at
+		FROM measurings
+		WHERE user_id = ?
+		ORDER BY average_ms ASC, created_at ASC
+		LIMIT ?
+	`, userID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("list best times: %w", err)
+	}
+	defer rows.Close()
+
+	items := make([]models.BestTime, 0, limit)
+	for rows.Next() {
+		var item models.BestTime
+		if err := rows.Scan(&item.TimeMs, &item.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan best time: %w", err)
+		}
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
 func ao5(attempts []models.Attempt) int64 {
 	times := make([]int64, len(attempts))
 	for i, attempt := range attempts {

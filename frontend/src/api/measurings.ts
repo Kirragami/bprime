@@ -9,6 +9,15 @@ export type SavedMeasuring = {
   createdAt: string;
 };
 
+export type BestTime = {
+  timeMs: number;
+  createdAt: string;
+};
+
+export function listBestTimes() {
+  return request<BestTime[]>("/api/measurings/bests");
+}
+
 export function saveMeasuring(mode: "solo" | "multi", attempts: Attempt[]) {
   return request<SavedMeasuring>("/api/measurings", {
     method: "POST",

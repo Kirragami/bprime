@@ -43,3 +43,19 @@ func (h *Handler) CreateMeasuring(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusCreated, item)
 }
+
+func (h *Handler) ListBestTimes(w http.ResponseWriter, r *http.Request) {
+	user, ok := h.userFromRequest(r)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "not signed in")
+		return
+	}
+
+	items, err := h.measurings.BestTimes(r.Context(), user.ID, 5)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load times")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, items)
+}

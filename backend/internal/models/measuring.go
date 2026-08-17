@@ -13,3 +13,8 @@ type Measuring struct {
 	Attempts  []Attempt `json:"attempts"`
 	CreatedAt string    `json:"createdAt"`
 }
+
+type BestTime struct {
+	TimeMs    int64  `json:"timeMs"`
+	CreatedAt string `json:"createdAt"`
+}

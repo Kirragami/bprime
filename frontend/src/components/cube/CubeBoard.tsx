@@ -5,6 +5,7 @@ import { RegisterForm } from "../auth/RegisterForm";
 import {
   LOGGED_OUT_SCREEN,
   colSlots,
+  incomingOverlayForTurn,
   overlayFor,
   rowSlots,
   sameRowScreen,
@@ -13,6 +14,7 @@ import {
   withRow,
   type BoardScreen,
   type Overlay,
+  type OverlayTurn,
   type RowSlots,
   type SliceIndex,
   type TurnDir,
@@ -22,6 +24,7 @@ import { FriendsList } from "../friends/FriendsList";
 import { useAuth } from "../../hooks/useAuth";
 import { useFriends } from "../../hooks/useFriends";
 import { saveMeasuring } from "../../api/measurings";
+import { BestTimes } from "../game/BestTimes";
 import { GameModes } from "../game/GameModes";
 import { SoloActions } from "../game/SoloActions";
 import { SoloClockSetting } from "../game/SoloClockSetting";
@@ -32,11 +35,26 @@ import { SoloScramble } from "../game/SoloScramble";
 import { SoloTimer } from "../game/SoloTimer";
 import { SoloTitle } from "../game/SoloTitle";
 import { warmScrambler } from "../../game/scramble";
+import { useBestTimes } from "../../hooks/useBestTimes";
 import { useSoloSession } from "../../hooks/useSoloSession";
 import { useSoloSettings } from "../../hooks/useSoloSettings";
 import { CubeView } from "./CubeView";
 
 const AUTO_COL_MS = 4000;
+
+const enterSoloTurns: OverlayTurn[] = [
+  { axis: "col", index: 0, dir: -1 },
+  { axis: "row", index: 1, dir: 1 },
+  { axis: "col", index: 1, dir: -1 },
+  { axis: "row", index: 0, dir: -1 },
+];
+
+const leaveSoloTurns: OverlayTurn[] = [
+  { axis: "row", index: 0, dir: 1 },
+  { axis: "col", index: 1, dir: 1 },
+  { axis: "row", index: 1, dir: -1 },
+  { axis: "col", index: 0, dir: 1 },
+];
 
 export function CubeBoard() {
   const cube = useCube();
@@ -52,6 +70,7 @@ export function CubeBoard() {
   const [soloLive, setSoloLive] = useState(false);
   const soloPrefs = useSoloSettings();
   const solo = useSoloSession(soloLive, soloPrefs.lookSec);
+  const bests = useBestTimes(Boolean(auth.user));
   const turnColRef = useRef(cube.turnCol);
   const turnRowRef = useRef(cube.turnRow);
   const isBusyRef = useRef(cube.isBusy);
@@ -113,6 +132,20 @@ export function CubeBoard() {
     });
   }
 
+  async function playOverlayTurns(turns: readonly OverlayTurn[], final: Overlay) {
+    for (let index = 0; index < turns.length; index += 1) {
+      const turn = turns[index];
+      const incoming = incomingOverlayForTurn(final, turns, index);
+      if (turn.axis === "col") {
+        await spinCol(turn.index, turn.dir, incoming);
+      } else {
+        await spinOverlayRow(turn.index, turn.dir, incoming);
+      }
+    }
+    overlayRef.current = final;
+    setOverlay(final);
+  }
+
   function isSoloPlay(play = screenRef.current.play) {
     return play === "solo" || play === "solo-settings";
   }
@@ -130,10 +163,7 @@ export function CubeBoard() {
         setScreen(soloScreen);
       }
       const nextScreen = { ...screenRef.current, play: "none" as const };
-      const nextOverlay = overlayFor(nextScreen);
-      await spinCol(1, 1, nextOverlay);
-      await spinOverlayRow(1, -1, nextOverlay);
-      await spinCol(0, 1, nextOverlay);
+      await playOverlayTurns(leaveSoloTurns, overlayFor(nextScreen));
       screenRef.current = nextScreen;
       setScreen(nextScreen);
     } finally {
@@ -179,6 +209,7 @@ export function CubeBoard() {
     setSavePending(true);
     try {
       await saveMeasuring("solo", solo.attempts);
+      await bests.refresh();
       await leaveSolo();
     } finally {
       setSavePending(false);
@@ -193,10 +224,7 @@ export function CubeBoard() {
     setSoloLive(true);
     try {
       const nextScreen = { ...screenRef.current, play: "solo" as const };
-      const nextOverlay = overlayFor(nextScreen);
-      await spinCol(0, -1, nextOverlay);
-      await spinOverlayRow(1, 1, nextOverlay);
-      await spinCol(1, -1, nextOverlay);
+      await playOverlayTurns(enterSoloTurns, overlayFor(nextScreen));
       screenRef.current = nextScreen;
       setScreen(nextScreen);
     } finally {
@@ -382,6 +410,9 @@ export function CubeBoard() {
               onSubmit={friends.sendRequest}
             />
           );
+        }
+        if (slot === "bests") {
+          return <BestTimes times={bests.times} />;
         }
         if (slot === "solo-title") {
           return <SoloTitle />;

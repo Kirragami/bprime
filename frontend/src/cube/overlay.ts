@@ -1,4 +1,4 @@
-import type { SliceIndex } from "./types";
+import type { SliceIndex, TurnAxis, TurnDir } from "./types";
 
 export type BoardScreen = {
   top: "login" | "register" | "profile";
@@ -21,6 +21,46 @@ export type Overlay = [
 
 export type RowSlots = [string | null, string | null, string | null];
 
+export type OverlayTurn = {
+  axis: TurnAxis;
+  index: SliceIndex;
+  dir: TurnDir;
+};
+
+const emptyOverlay: Overlay = [null, null, null, null, null, null, null, null, null];
+
+export function sliceCells(axis: TurnAxis, index: SliceIndex): [number, number, number] {
+  if (axis === "col") {
+    return [index, index + 3, index + 6];
+  }
+  const start = index * 3;
+  return [start, start + 1, start + 2];
+}
+
+function lastTurnForCell(turns: readonly OverlayTurn[], cell: number) {
+  for (let index = turns.length - 1; index >= 0; index -= 1) {
+    if (sliceCells(turns[index].axis, turns[index].index).includes(cell)) {
+      return index;
+    }
+  }
+  return -1;
+}
+
+export function incomingOverlayForTurn(
+  final: Overlay,
+  turns: readonly OverlayTurn[],
+  turnIndex: number,
+): Overlay {
+  const next = [...emptyOverlay] as Overlay;
+  const turn = turns[turnIndex];
+  for (const cell of sliceCells(turn.axis, turn.index)) {
+    if (lastTurnForCell(turns, cell) === turnIndex) {
+      next[cell] = final[cell];
+    }
+  }
+  return next;
+}
+
 export const LOGGED_OUT_SCREEN: BoardScreen = {
   top: "login",
   middle: "idle",
@@ -30,7 +70,7 @@ export const LOGGED_OUT_SCREEN: BoardScreen = {
 
 export function overlayFor(screen: BoardScreen): Overlay {
   if (screen.play === "solo") {
-    return ["solo-title", "solo-history", null, "solo-scramble", "solo-stage", null, "solo-preview", "solo-actions", "settings"];
+    return ["solo-title", "solo-history", "bests", "solo-scramble", "solo-stage", null, "solo-preview", "solo-actions", "settings"];
   }
 
   if (screen.play === "solo-settings") {

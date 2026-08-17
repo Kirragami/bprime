@@ -31,7 +31,7 @@ function OverlayCell({
   const content = slot ? renderSlot?.(slot, { active: true }) : null;
   const ink = inkForTile(color);
   const isTitle = slot === "title" || slot === "title-modes" || slot === "solo-title";
-  const isFill = slot === "solo-stage" || slot === "solo-preview" || slot === "solo-scramble";
+  const isFill = slot === "solo-stage" || slot === "solo-preview" || slot === "solo-scramble" || slot === "bests";
   const isProfile = slot === "profile";
   const isSoloDock = slot === "solo-history" || slot === "solo-actions";
   const className = [
