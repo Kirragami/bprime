@@ -10,11 +10,13 @@ type CubeCellProps = {
 
 export function CubeCell({ cell, slot = null, active = false, renderSlot }: CubeCellProps) {
   const content = slot ? renderSlot?.(slot, { active }) : null;
-  const isCentered = slot === "title";
+  const isCentered = slot === "title" || slot === "title-modes";
+  const isFill = slot === "solo-stage" || slot === "solo-preview";
   const className = [
     "cube-board__cell",
     content && isCentered ? "cube-board__cell--form" : "",
-    content && !isCentered ? "cube-board__cell--copy" : "",
+    content && isFill ? "cube-board__cell--timer" : "",
+    content && !isCentered && !isFill ? "cube-board__cell--copy" : "",
     active ? "cube-board__cell--active" : "",
   ]
     .filter(Boolean)

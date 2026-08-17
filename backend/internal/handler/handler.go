@@ -17,6 +17,7 @@ type Handler struct {
 	users        *repository.UserRepository
 	sessions     *repository.SessionRepository
 	friends      *repository.FriendRepository
+	measurings   *repository.MeasuringRepository
 	events       *realtime.Hub
 	limiter      *auth.Limiter
 	dummyHash    string
@@ -46,6 +47,7 @@ func New(
 		users:        users,
 		sessions:     sessions,
 		friends:      friends,
+		measurings:   repository.NewMeasuringRepository(db),
 		events:       realtime.NewHub(),
 		limiter:      auth.NewLimiter(authRateLimit, authRateWindow),
 		dummyHash:    dummyHash,

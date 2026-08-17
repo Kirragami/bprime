@@ -19,6 +19,7 @@ export {
   colSlots,
   rowSlots,
   sameRowScreen,
+  withCol,
 } from "./overlay";
 export type { BoardScreen, Overlay, RowSlots } from "./overlay";
 export type { CubeController } from "./useCube";

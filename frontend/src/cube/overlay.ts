@@ -4,6 +4,7 @@ export type BoardScreen = {
   top: "login" | "register" | "profile";
   middle: "idle" | "friends";
   bottom: "empty" | "settings" | "menu";
+  play: "none" | "solo";
 };
 
 export type Overlay = [
@@ -24,9 +25,14 @@ export const LOGGED_OUT_SCREEN: BoardScreen = {
   top: "login",
   middle: "idle",
   bottom: "empty",
+  play: "none",
 };
 
 export function overlayFor(screen: BoardScreen): Overlay {
+  if (screen.play === "solo") {
+    return [null, "solo-history", null, null, "solo-stage", null, null, "solo-actions", "solo-preview"];
+  }
+
   const top: RowSlots =
     screen.top === "login"
       ? ["login", "tagline", "register-cta"]
@@ -35,7 +41,9 @@ export function overlayFor(screen: BoardScreen): Overlay {
         : ["profile", null, null];
 
   const middle: RowSlots =
-    screen.middle === "friends" ? ["friends", "title", "add-friend"] : [null, "title", null];
+    screen.middle === "friends"
+      ? ["friends", "title-modes", "add-friend"]
+      : [null, "title", null];
 
   const bottom: RowSlots =
     screen.bottom === "settings"
@@ -54,6 +62,14 @@ export function rowSlots(overlay: Overlay, row: SliceIndex): RowSlots {
 
 export function colSlots(overlay: Overlay, col: SliceIndex): RowSlots {
   return [overlay[col], overlay[col + 3], overlay[col + 6]];
+}
+
+export function withCol(overlay: Overlay, col: SliceIndex, slots: RowSlots): Overlay {
+  const next = [...overlay] as Overlay;
+  next[col] = slots[0];
+  next[col + 3] = slots[1];
+  next[col + 6] = slots[2];
+  return next;
 }
 
 export function sameRowScreen(

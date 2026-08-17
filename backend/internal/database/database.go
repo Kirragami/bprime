@@ -68,6 +68,28 @@ CREATE TABLE IF NOT EXISTS sessions (
 CREATE INDEX IF NOT EXISTS sessions_user_idx ON sessions (user_id);
 CREATE INDEX IF NOT EXISTS sessions_expires_idx ON sessions (expires_at);
 
+CREATE TABLE IF NOT EXISTS measurings (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	user_id INTEGER NOT NULL,
+	mode TEXT NOT NULL CHECK (mode IN ('solo', 'multi')),
+	average_ms INTEGER NOT NULL,
+	created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+	FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS measurings_user_idx ON measurings (user_id, created_at);
+
+CREATE TABLE IF NOT EXISTS attempts (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	measuring_id INTEGER NOT NULL,
+	attempt_index INTEGER NOT NULL,
+	time_ms INTEGER NOT NULL,
+	scramble TEXT NOT NULL,
+	created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+	FOREIGN KEY (measuring_id) REFERENCES measurings(id) ON DELETE CASCADE,
+	UNIQUE (measuring_id, attempt_index)
+);
+CREATE INDEX IF NOT EXISTS attempts_measuring_idx ON attempts (measuring_id);
+
 `
 
 	if _, err := db.Exec(schema); err != nil {

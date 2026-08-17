@@ -30,13 +30,17 @@ function OverlayCell({
 }) {
   const content = slot ? renderSlot?.(slot, { active: true }) : null;
   const ink = inkForTile(color);
-  const isTitle = slot === "title";
+  const isTitle = slot === "title" || slot === "title-modes";
+  const isFill = slot === "solo-stage" || slot === "solo-preview";
   const isProfile = slot === "profile";
+  const isSoloDock = slot === "solo-history" || slot === "solo-actions";
   const className = [
     "cube-overlay__cell",
     content && isTitle ? "cube-overlay__cell--form" : "",
+    content && isFill ? "cube-overlay__cell--timer" : "",
     content && isProfile ? "cube-overlay__cell--profile" : "",
-    content && !isTitle && !isProfile ? "cube-overlay__cell--copy" : "",
+    content && isSoloDock ? "cube-overlay__cell--copy" : "",
+    content && !isTitle && !isFill && !isProfile && !isSoloDock ? "cube-overlay__cell--copy" : "",
   ]
     .filter(Boolean)
     .join(" ");

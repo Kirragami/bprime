@@ -4,11 +4,14 @@ import { ProfileTile } from "../auth/ProfileTile";
 import { RegisterForm } from "../auth/RegisterForm";
 import {
   LOGGED_OUT_SCREEN,
+  colSlots,
   overlayFor,
   rowSlots,
   sameRowScreen,
   useCube,
+  withCol,
   type BoardScreen,
+  type Overlay,
   type RowSlots,
   type SliceIndex,
   type TurnDir,
@@ -17,6 +20,14 @@ import { AddFriendForm } from "../friends/AddFriendForm";
 import { FriendsList } from "../friends/FriendsList";
 import { useAuth } from "../../hooks/useAuth";
 import { useFriends } from "../../hooks/useFriends";
+import { saveMeasuring } from "../../api/measurings";
+import { GameModes } from "../game/GameModes";
+import { SoloActions } from "../game/SoloActions";
+import { SoloHistory } from "../game/SoloHistory";
+import { SoloPreview } from "../game/SoloPreview";
+import { SoloTimer } from "../game/SoloTimer";
+import { warmScrambler } from "../../game/scramble";
+import { useSoloSession } from "../../hooks/useSoloSession";
 import { CubeView } from "./CubeView";
 
 const AUTO_COL_MS = 4000;
@@ -26,10 +37,14 @@ export function CubeBoard() {
   const auth = useAuth();
   const friends = useFriends(Boolean(auth.user));
   const [screen, setScreen] = useState<BoardScreen>(LOGGED_OUT_SCREEN);
+  const [overlay, setOverlay] = useState<Overlay>(() => overlayFor(LOGGED_OUT_SCREEN));
   const [incomingSlots, setIncomingSlots] = useState<RowSlots | undefined>();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [registerError, setRegisterError] = useState<string | null>(null);
   const [formPending, setFormPending] = useState(false);
+  const [savePending, setSavePending] = useState(false);
+  const [soloLive, setSoloLive] = useState(false);
+  const solo = useSoloSession(soloLive);
   const turnColRef = useRef(cube.turnCol);
   const turnRowRef = useRef(cube.turnRow);
   const isBusyRef = useRef(cube.isBusy);
@@ -39,10 +54,12 @@ export function CubeBoard() {
   isBusyRef.current = cube.isBusy;
   const userRef = useRef(auth.user);
   const screenRef = useRef(screen);
+  const overlayRef = useRef(overlay);
   const revealedRef = useRef(false);
   const transitioningRef = useRef(false);
   userRef.current = auth.user;
   screenRef.current = screen;
+  overlayRef.current = overlay;
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -64,9 +81,71 @@ export function CubeBoard() {
     setIncomingSlots(rowSlots(overlayFor(next), row));
     await turnRowRef.current(row, dir, () => {
       screenRef.current = next;
+      overlayRef.current = overlayFor(next);
       setScreen(next);
+      setOverlay(overlayRef.current);
       setIncomingSlots(undefined);
     });
+  }
+
+  async function spinCol(col: SliceIndex, dir: TurnDir, nextOverlay: Overlay) {
+    setIncomingSlots(colSlots(nextOverlay, col));
+    await turnColRef.current(col, dir, () => {
+      overlayRef.current = withCol(overlayRef.current, col, colSlots(nextOverlay, col));
+      setOverlay(overlayRef.current);
+      setIncomingSlots(undefined);
+    });
+  }
+
+  async function leaveSolo() {
+    if (screenRef.current.play !== "solo" || transitioningRef.current) {
+      return;
+    }
+    transitioningRef.current = true;
+    try {
+      const nextScreen = { ...screenRef.current, play: "none" as const };
+      const nextOverlay = overlayFor(nextScreen);
+      await spinCol(0, 1, nextOverlay);
+      await spinCol(1, -1, nextOverlay);
+      await spinCol(2, 1, nextOverlay);
+      screenRef.current = nextScreen;
+      setScreen(nextScreen);
+    } finally {
+      setSoloLive(false);
+      transitioningRef.current = false;
+    }
+  }
+
+  async function saveSolo() {
+    if (solo.attempts.length !== 5 || savePending) {
+      return;
+    }
+    setSavePending(true);
+    try {
+      await saveMeasuring("solo", solo.attempts);
+      await leaveSolo();
+    } finally {
+      setSavePending(false);
+    }
+  }
+
+  async function enterSolo() {
+    if (screenRef.current.play === "solo" || transitioningRef.current) {
+      return;
+    }
+    transitioningRef.current = true;
+    setSoloLive(true);
+    try {
+      const nextScreen = { ...screenRef.current, play: "solo" as const };
+      const nextOverlay = overlayFor(nextScreen);
+      await spinCol(0, -1, nextOverlay);
+      await spinCol(1, 1, nextOverlay);
+      await spinCol(2, -1, nextOverlay);
+      screenRef.current = nextScreen;
+      setScreen(nextScreen);
+    } finally {
+      transitioningRef.current = false;
+    }
   }
 
   async function revealSignedIn() {
@@ -79,6 +158,12 @@ export function CubeBoard() {
       transitioningRef.current = false;
     }
   }
+
+  useEffect(() => {
+    if (auth.user) {
+      warmScrambler();
+    }
+  }, [auth.user]);
 
   useEffect(() => {
     if (auth.loading) {
@@ -134,7 +219,7 @@ export function CubeBoard() {
   return (
     <CubeView
       faces={cube.faces}
-      overlay={overlayFor(screen)}
+      overlay={overlay}
       turn={cube.turn}
       angle={cube.angle}
       turning={cube.turning}
@@ -223,8 +308,37 @@ export function CubeBoard() {
             />
           );
         }
+        if (slot === "solo-history") {
+          return <SoloHistory attempts={solo.attempts} />;
+        }
+        if (slot === "solo-stage") {
+          return (
+            <SoloTimer
+              phase={solo.phase}
+              elapsed={solo.elapsed}
+              inspectLeft={solo.inspectLeft}
+              averageMs={solo.averageMs}
+            />
+          );
+        }
+        if (slot === "solo-preview") {
+          return <SoloPreview scramble={solo.scramble} image={solo.scrambleImage} />;
+        }
+        if (slot === "solo-actions") {
+          return (
+            <SoloActions
+              done={solo.phase === "done"}
+              pending={savePending}
+              onSave={() => void saveSolo()}
+              onCancel={() => void leaveSolo()}
+            />
+          );
+        }
         if (slot === "title") {
           return <p className="cube-title">bprime</p>;
+        }
+        if (slot === "title-modes") {
+          return <GameModes onSolo={() => void enterSolo()} />;
         }
         if (slot === "tagline") {
           return <p className="cube-copy">login to play with friends</p>;
