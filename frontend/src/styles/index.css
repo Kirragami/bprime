@@ -18,39 +18,367 @@ body,
 #root {
   margin: 0;
   height: 100%;
+  overflow: hidden;
 }
 
 body {
-  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-family: "Outfit", "Segoe UI", sans-serif;
   background: var(--bg);
   color: var(--text);
 }
 
-.app-shell {
+.cube-scene {
+  --row-r: 50vw;
+  --col-r: 50vh;
+  --slice-r: var(--row-r);
+  --seam: clamp(4px, 0.55vmin, 8px);
+  --tile-r: clamp(7px, 1.15vmin, 16px);
+  --plastic: #141414;
+  --turn-ms: 720ms;
+  --turn-ease: cubic-bezier(0.45, 0.05, 0.18, 1);
+  --slab-h: calc((100vh - 4 * var(--seam)) / 3);
+  --slab-w: calc((100vw - 4 * var(--seam)) / 3);
+  --slice-index: 0;
+  width: 100%;
+  height: 100%;
+  perspective: 2800px;
+  perspective-origin: 50% 50%;
+  overflow: hidden;
+  background: var(--plastic);
+}
+
+.cube-face-grid {
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: var(--seam);
+  padding: var(--seam);
+  width: 100%;
   height: 100%;
 }
 
-.app-shell__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.9rem 1.2rem;
-  border-bottom: 1px solid var(--line);
-  background: var(--panel);
+.cube-face-flat {
+  position: absolute;
+  inset: 0;
+  background: var(--plastic);
+  z-index: 0;
 }
 
-.app-shell__header h1 {
+.cube--turning {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.cube--row-turn {
+  --slice-r: var(--row-r);
+  transform: translateZ(calc(-1 * var(--row-r)));
+}
+
+.cube--col-turn {
+  --slice-r: var(--col-r);
+  transform: translateZ(calc(-1 * var(--col-r)));
+}
+
+.cube-slab {
+  position: absolute;
+  transform-style: preserve-3d;
+  transform-origin: 50% 50%;
+  transition: transform var(--turn-ms) var(--turn-ease);
+  pointer-events: none;
+}
+
+.cube-slab--row {
+  left: 0;
+  width: 100%;
+  height: var(--slab-h);
+  top: calc(var(--seam) + var(--slice-index) * (var(--slab-h) + var(--seam)));
+}
+
+.cube-slab--col {
+  top: 0;
+  height: 100%;
+  width: var(--slab-w);
+  left: calc(var(--seam) + var(--slice-index) * (var(--slab-w) + var(--seam)));
+}
+
+.cube-slab-wall {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--seam);
+  padding: 0 var(--seam);
+  backface-visibility: hidden;
+  pointer-events: none;
+}
+
+.cube-slab-wall--col {
+  grid-template-columns: 1fr;
+  grid-template-rows: repeat(3, 1fr);
+  padding: var(--seam) 0;
+}
+
+.cube-slab-wall--front {
+  transform: rotateY(0deg) translateZ(var(--slice-r));
+}
+
+.cube-slab-wall--right {
+  transform: rotateY(90deg) translateZ(var(--slice-r));
+}
+
+.cube-slab-wall--back {
+  transform: rotateY(180deg) translateZ(var(--slice-r));
+}
+
+.cube-slab-wall--left {
+  transform: rotateY(-90deg) translateZ(var(--slice-r));
+}
+
+.cube-slab-wall--up {
+  transform: rotateX(90deg) translateZ(var(--slice-r));
+}
+
+.cube-slab-wall--down {
+  transform: rotateX(-90deg) translateZ(var(--slice-r));
+}
+
+.cube-slab-cap {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: var(--seam);
+  padding: var(--seam);
+  backface-visibility: hidden;
+  pointer-events: none;
+}
+
+.cube-slab-cap--top,
+.cube-slab-cap--bottom {
+  width: 100%;
+  height: calc(var(--slice-r) * 2);
+}
+
+.cube-slab-cap--top {
+  transform: translate(-50%, -50%) rotateX(90deg) translateZ(calc(var(--slab-h) / 2));
+}
+
+.cube-slab-cap--bottom {
+  transform: translate(-50%, -50%) rotateX(-90deg) translateZ(calc(var(--slab-h) / 2));
+}
+
+.cube-slab-cap--left,
+.cube-slab-cap--right {
+  width: calc(var(--slice-r) * 2);
+  height: 100%;
+}
+
+.cube-slab-cap--right {
+  transform: translate(-50%, -50%) rotateY(90deg) translateZ(calc(var(--slab-w) / 2));
+}
+
+.cube-slab-cap--left {
+  transform: translate(-50%, -50%) rotateY(-90deg) translateZ(calc(var(--slab-w) / 2));
+}
+
+.cube-slab-cap--plastic {
+  display: block;
+  background: var(--plastic);
+}
+
+.cube-board__cell-spacer {
+  min-width: 0;
+  min-height: 0;
+}
+
+.cube-board__cell {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  border-radius: var(--tile-r);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.35),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -3px 7px rgba(0, 0, 0, 0.12);
+  pointer-events: none;
+}
+
+.cube-board__cell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.22) 0%,
+    rgba(255, 255, 255, 0.05) 36%,
+    rgba(0, 0, 0, 0.08) 100%
+  );
+  pointer-events: none;
+}
+
+.cube-board__cell--form {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cube-board__cell--copy {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: 1.1rem 1.25rem;
+}
+
+.cube-board__cell--active {
+  pointer-events: auto;
+}
+
+.cube-title,
+.cube-copy,
+.cube-copy__link {
+  color: var(--tile-ink);
+}
+
+.cube-title {
+  position: relative;
+  z-index: 1;
   margin: 0;
-  font-size: 1rem;
-  font-weight: 560;
-  letter-spacing: 0.08em;
+  font-family: "Archivo Black", "Outfit", sans-serif;
+  font-size: clamp(4.4rem, 12vmin, 8.5rem);
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 0.9;
   text-transform: lowercase;
 }
 
-.app-shell__main {
-  min-height: 0;
+.cube-copy {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  max-width: 100%;
+  font-family: "Archivo Black", "Outfit", sans-serif;
+  font-size: clamp(2.1rem, 5.8vmin, 4rem);
+  font-weight: 400;
+  line-height: 1.05;
+  text-align: left;
+  text-transform: lowercase;
+}
+
+.cube-copy__link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+  cursor: pointer;
+}
+
+.login-form {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.7rem;
+  width: 18rem;
+  font-family: "Space Grotesk", "Outfit", sans-serif;
+}
+
+.login-form__title,
+.login-form input,
+.login-form__register {
+  color: var(--tile-ink);
+}
+
+.login-form__title {
+  margin: 0 0 0.1rem;
+  font-family: "Archivo Black", "Outfit", sans-serif;
+  font-size: clamp(2.1rem, 5.8vmin, 4rem);
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.05;
+  text-align: left;
+  text-transform: lowercase;
+}
+
+.login-form input,
+.login-form__submit {
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 600;
+  padding: 0.55rem 0.75rem;
+}
+
+.login-form input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.login-form input {
+  background: transparent;
+  border: 2px solid var(--tile-ink);
+  text-decoration: none;
+}
+
+.login-form input::-webkit-contacts-auto-fill-button,
+.login-form input::-webkit-credentials-auto-fill-button {
+  visibility: hidden;
+  display: none;
+  pointer-events: none;
+}
+
+.login-form input::placeholder {
+  color: var(--tile-muted);
+  opacity: 1;
+}
+
+.login-form input:focus {
+  outline: none;
+}
+
+.login-form__submit {
+  align-self: flex-start;
+  width: auto;
+  margin-top: 0.1rem;
+  padding: 0.32rem 1.55rem;
+  border: 0;
+  background: var(--tile-button);
+  color: var(--tile-button-ink);
+  font-size: 0.88rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.login-form__submit:hover {
+  filter: brightness(0.92);
+}
+
+.login-form__register:hover {
+  color: var(--tile-ink);
+}
+
+.login-form button.login-form__register {
+  align-self: flex-start;
+  width: auto;
+  margin-top: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+  cursor: pointer;
 }
 
 .status-badge {
