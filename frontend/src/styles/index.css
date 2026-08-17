@@ -13,12 +13,19 @@
   box-sizing: border-box;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 html,
 body,
 #root {
   margin: 0;
   height: 100%;
+  height: 100dvh;
   overflow: hidden;
+  overscroll-behavior: none;
 }
 
 body {
@@ -28,23 +35,32 @@ body {
 }
 
 .cube-scene {
-  --row-r: 50vw;
-  --col-r: 50vh;
+  --inset-t: env(safe-area-inset-top, 0px);
+  --inset-r: env(safe-area-inset-right, 0px);
+  --inset-b: env(safe-area-inset-bottom, 0px);
+  --inset-l: env(safe-area-inset-left, 0px);
+  --grid-w: calc(100dvw - var(--inset-l) - var(--inset-r));
+  --grid-h: calc(100dvh - var(--inset-t) - var(--inset-b));
+  --row-r: calc(var(--grid-w) / 2);
+  --col-r: calc(var(--grid-h) / 2);
   --slice-r: var(--row-r);
-  --seam: clamp(4px, 0.55vmin, 8px);
-  --tile-r: clamp(7px, 1.15vmin, 16px);
+  --seam: clamp(3px, 0.55vmin, 8px);
+  --tile-r: clamp(5px, 1.15vmin, 16px);
   --plastic: #141414;
   --turn-ms: 220ms;
   --turn-ease: cubic-bezier(0.45, 0.05, 0.18, 1);
-  --slab-h: calc((100vh - 4 * var(--seam)) / 3);
-  --slab-w: calc((100vw - 4 * var(--seam)) / 3);
+  --slab-h: calc((var(--grid-h) - 4 * var(--seam)) / 3);
+  --slab-w: calc((var(--grid-w) - 4 * var(--seam)) / 3);
   --slice-index: 0;
   width: 100%;
   height: 100%;
-  perspective: 2800px;
+  padding: var(--inset-t) var(--inset-r) var(--inset-b) var(--inset-l);
+  box-sizing: border-box;
+  perspective: min(2800px, 220vw);
   perspective-origin: 50% 50%;
   overflow: hidden;
   background: var(--plastic);
+  touch-action: manipulation;
 }
 
 .cube-face-grid {
@@ -76,6 +92,8 @@ body {
   min-width: 0;
   min-height: 0;
   position: relative;
+  overflow: hidden;
+  container-type: size;
 }
 
 .cube-overlay__cell--form {
@@ -94,7 +112,7 @@ body {
   display: flex;
   align-items: flex-end;
   justify-content: flex-start;
-  padding: 1.1rem 1.25rem;
+  padding: clamp(0.4rem, 7cqmin, 1.25rem);
   pointer-events: auto;
 }
 
@@ -102,7 +120,7 @@ body {
   display: flex;
   align-items: flex-end;
   justify-content: flex-start;
-  padding: 1.1rem 1.25rem;
+  padding: clamp(0.4rem, 7cqmin, 1.25rem);
   pointer-events: auto;
 }
 
@@ -118,8 +136,8 @@ body {
 
 .profile-avatar {
   position: relative;
-  width: clamp(4.6rem, 12vmin, 7.2rem);
-  height: clamp(4.6rem, 12vmin, 7.2rem);
+  width: clamp(2.6rem, 28cqmin, 7.2rem);
+  height: clamp(2.6rem, 28cqmin, 7.2rem);
   padding: 0;
   border: 0;
   border-radius: 50%;
@@ -195,7 +213,7 @@ body {
   display: grid;
   place-items: center;
   font-family: "Bungee", "Archivo Black", sans-serif;
-  font-size: clamp(1.8rem, 5vmin, 2.8rem);
+  font-size: clamp(1.1rem, 12cqmin, 2.8rem);
   line-height: 1;
   text-transform: lowercase;
 }
@@ -394,6 +412,8 @@ body {
   position: relative;
   min-width: 0;
   min-height: 0;
+  overflow: hidden;
+  container-type: size;
   border: 0;
   border-radius: var(--tile-r);
   box-shadow:
@@ -432,7 +452,7 @@ body {
   display: flex;
   align-items: flex-end;
   justify-content: flex-start;
-  padding: 1.1rem 1.25rem;
+  padding: clamp(0.4rem, 7cqmin, 1.25rem);
 }
 
 .cube-board__cell--active {
@@ -450,7 +470,7 @@ body {
   z-index: 1;
   margin: 0;
   font-family: "Bungee", "Archivo Black", sans-serif;
-  font-size: clamp(3.6rem, 10vmin, 7.2rem);
+  font-size: clamp(1.5rem, 22cqmin, 7.2rem);
   font-style: normal;
   font-weight: 400;
   letter-spacing: 0.02em;
@@ -464,25 +484,25 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.1rem;
+  gap: clamp(0.35rem, 5cqmin, 1.1rem);
   max-width: 100%;
-  padding: 0.6rem 0.8rem;
+  padding: clamp(0.3rem, 4cqmin, 0.8rem);
 }
 
 .game-modes .cube-title {
-  font-size: clamp(2.6rem, 7.2vmin, 5.2rem);
+  font-size: clamp(1.35rem, 16cqmin, 5.2rem);
 }
 
 .game-modes__row {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 2.15rem;
+  gap: clamp(0.7rem, 10cqmin, 2.15rem);
 }
 
 .mode-diamond {
-  width: clamp(2.7rem, 6.4vmin, 3.6rem);
-  height: clamp(2.7rem, 6.4vmin, 3.6rem);
+  width: clamp(1.8rem, 16cqmin, 3.6rem);
+  height: clamp(1.8rem, 16cqmin, 3.6rem);
   padding: 0;
   border: 0;
   background: none;
@@ -550,7 +570,7 @@ body {
 .best-times__title {
   margin: 0;
   font-family: "Archivo Black", "Outfit", sans-serif;
-  font-size: clamp(1.05rem, 2.5vmin, 1.65rem);
+  font-size: clamp(0.78rem, 8cqmin, 1.65rem);
   letter-spacing: 0.04em;
   line-height: 1.1;
   text-transform: lowercase;
@@ -559,7 +579,7 @@ body {
 .best-times__best {
   margin: 0;
   font-family: "Space Grotesk", "Outfit", sans-serif;
-  font-size: clamp(2.8rem, 7.6vmin, 4.8rem);
+  font-size: clamp(1.5rem, 22cqmin, 4.8rem);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.04em;
@@ -575,7 +595,7 @@ body {
   list-style: none;
   color: var(--tile-muted);
   font-family: "Space Grotesk", "Outfit", sans-serif;
-  font-size: clamp(1.05rem, 2.5vmin, 1.55rem);
+  font-size: clamp(0.78rem, 8cqmin, 1.55rem);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.03em;
@@ -597,8 +617,8 @@ body {
 }
 
 .solo-title__icon {
-  width: clamp(3.4rem, 8.4vmin, 5.2rem);
-  height: clamp(3.4rem, 8.4vmin, 5.2rem);
+  width: clamp(1.7rem, 18cqmin, 5.2rem);
+  height: clamp(1.7rem, 18cqmin, 5.2rem);
   color: inherit;
 }
 
@@ -610,7 +630,7 @@ body {
 .solo-title__name {
   margin: 0;
   font-family: "Bungee", "Archivo Black", sans-serif;
-  font-size: clamp(3.4rem, 9.4vmin, 6.6rem);
+  font-size: clamp(1.45rem, 22cqmin, 6.6rem);
   font-weight: 400;
   letter-spacing: 0.04em;
   line-height: 0.88;
@@ -642,14 +662,14 @@ body {
   height: 100%;
   min-width: 0;
   min-height: 0;
-  padding: 1.05rem 1.15rem;
+  padding: clamp(0.45rem, 6cqmin, 1.15rem);
 }
 
 .solo-scramble {
   margin: 0;
   color: var(--tile-ink);
   font-family: "Space Grotesk", "Outfit", sans-serif;
-  font-size: clamp(1.45rem, 4.2vmin, 2.7rem);
+  font-size: clamp(0.78rem, 9cqmin, 2.7rem);
   font-weight: 600;
   letter-spacing: 0.04em;
   line-height: 1.3;
@@ -669,7 +689,7 @@ body {
   margin: 0;
   color: var(--tile-ink);
   font-family: "Space Grotesk", "Outfit", sans-serif;
-  font-size: clamp(4.2rem, 16vmin, 12rem);
+  font-size: clamp(1.8rem, 38cqmin, 12rem);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.04em;
@@ -678,7 +698,7 @@ body {
 
 .solo-stage.is-inspect .solo-timer,
 .solo-stage.is-ready .solo-timer {
-  font-size: clamp(5rem, 20vmin, 14rem);
+  font-size: clamp(2rem, 46cqmin, 14rem);
 }
 
 .solo-stage.is-ready .solo-timer {
@@ -693,8 +713,8 @@ body {
 }
 
 .solo-timer-pulse span {
-  width: clamp(1.1rem, 3.4vmin, 2.2rem);
-  height: clamp(1.1rem, 3.4vmin, 2.2rem);
+  width: clamp(0.7rem, 8cqmin, 2.2rem);
+  height: clamp(0.7rem, 8cqmin, 2.2rem);
   border-radius: 999px;
   background: var(--tile-ink);
   animation: solo-pulse 0.9s ease-in-out infinite;
@@ -725,7 +745,7 @@ body {
   margin: 0;
   color: var(--tile-ink);
   font-family: "Archivo Black", "Outfit", sans-serif;
-  font-size: clamp(1.4rem, 3.6vmin, 2.4rem);
+  font-size: clamp(0.9rem, 10cqmin, 2.4rem);
   letter-spacing: 0.06em;
   text-transform: lowercase;
 }
@@ -751,14 +771,14 @@ body {
 
 .solo-history__label {
   font-family: "Archivo Black", "Outfit", sans-serif;
-  font-size: clamp(1.3rem, 3.2vmin, 2rem);
+  font-size: clamp(0.85rem, 9cqmin, 2rem);
 }
 
 .solo-history__list {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  font-size: clamp(1.05rem, 2.4vmin, 1.5rem);
+  font-size: clamp(0.78rem, 8cqmin, 1.5rem);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
@@ -788,7 +808,7 @@ body {
   min-height: 1.15em;
   color: var(--tile-ink);
   font-family: "Archivo Black", "Outfit", sans-serif;
-  font-size: clamp(1.05rem, 2.6vmin, 1.55rem);
+  font-size: clamp(0.75rem, 8cqmin, 1.55rem);
   letter-spacing: 0.04em;
   line-height: 1.15;
   text-align: center;
@@ -801,7 +821,7 @@ body {
   margin: 0;
   max-width: 100%;
   font-family: "Archivo Black", "Outfit", sans-serif;
-  font-size: clamp(2.1rem, 5.8vmin, 4rem);
+  font-size: clamp(0.95rem, 14cqmin, 4rem);
   font-weight: 400;
   line-height: 1.05;
   text-align: left;
@@ -839,6 +859,8 @@ button.cube-copy {
   flex-direction: column;
   gap: 0.45rem;
   max-width: 100%;
+  max-height: 100%;
+  overflow: auto;
 }
 
 .friends-list__empty,
@@ -847,7 +869,7 @@ button.cube-copy {
   padding: 0;
   color: var(--tile-ink);
   font-family: "Space Grotesk", "Outfit", sans-serif;
-  font-size: clamp(0.95rem, 2.2vmin, 1.25rem);
+  font-size: clamp(0.72rem, 7cqmin, 1.25rem);
   font-weight: 600;
   line-height: 1.25;
   list-style: none;
@@ -964,7 +986,7 @@ button.cube-copy {
   flex-direction: column;
   align-items: flex-start;
   gap: 0.7rem;
-  width: 18rem;
+  width: min(18rem, 100%);
   font-family: "Space Grotesk", "Outfit", sans-serif;
 }
 
@@ -977,7 +999,7 @@ button.cube-copy {
 .login-form__title {
   margin: 0 0 0.1rem;
   font-family: "Archivo Black", "Outfit", sans-serif;
-  font-size: clamp(2.1rem, 5.8vmin, 4rem);
+  font-size: clamp(0.95rem, 14cqmin, 4rem);
   font-weight: 400;
   letter-spacing: 0;
   line-height: 1.05;
@@ -988,7 +1010,7 @@ button.cube-copy {
 .login-form input,
 .login-form__submit {
   font: inherit;
-  font-size: 1.05rem;
+  font-size: max(1rem, 16px);
   font-weight: 600;
   padding: 0.55rem 0.75rem;
 }
@@ -1087,4 +1109,43 @@ button.cube-copy {
 .status-badge--warn {
   color: var(--warn);
   border-color: var(--warn);
+}
+
+@media (orientation: landscape) and (max-height: 540px) {
+  .solo-title {
+    flex-direction: row;
+    gap: 0.55rem;
+  }
+
+  .game-modes {
+    gap: 0.35rem;
+  }
+
+  .profile-tile {
+    gap: 0.35rem;
+  }
+
+  .login-form {
+    gap: 0.4rem;
+  }
+
+  .solo-stage,
+  .solo-result {
+    padding: 0.35rem;
+    gap: 0.3rem;
+  }
+}
+
+@media (orientation: portrait) and (max-width: 700px) {
+  .cube-scene {
+    perspective: min(1800px, 280vw);
+  }
+
+  .login-form {
+    gap: 0.45rem;
+  }
+
+  .solo-title {
+    gap: 0.7rem;
+  }
 }
