@@ -1,8 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { LoginForm } from "../auth/LoginForm";
 import { RegisterForm } from "../auth/RegisterForm";
-import { createRandomCube, syncTaglineColumn, useCube } from "../../cube";
-import type { CubeFaces, TurnDir } from "../../cube";
+import {
+  LOGGED_OUT_SCREEN,
+  overlayFor,
+  rowSlots,
+  sameRowScreen,
+  useCube,
+  type BoardScreen,
+  type RowSlots,
+  type SliceIndex,
+  type TurnDir,
+} from "../../cube";
 import { AddFriendForm } from "../friends/AddFriendForm";
 import { useAuth } from "../../hooks/useAuth";
 import { useFriends } from "../../hooks/useFriends";
@@ -10,92 +19,28 @@ import { CubeView } from "./CubeView";
 
 const AUTO_COL_MS = 4000;
 
-function createAuthCube() {
-  const faces = createRandomCube();
-  faces.front[0] = { ...faces.front[0], slot: "login" };
-  faces.front[1] = { ...faces.front[1], slot: "tagline" };
-  faces.front[2] = { ...faces.front[2], slot: "register-cta" };
-  faces.front[3] = { ...faces.front[3], slot: "home-middle" };
-  faces.front[4] = { ...faces.front[4], slot: "title" };
-  faces.front[6] = { ...faces.front[6], slot: "home-bottom" };
-  faces.right[0] = { ...faces.right[0], slot: "register" };
-  faces.right[1] = { ...faces.right[1], slot: "register-tagline" };
-  faces.right[2] = { ...faces.right[2], slot: "login-cta" };
-  faces.right[3] = { ...faces.right[3], slot: "friends" };
-  faces.right[4] = { ...faces.right[4], slot: "title" };
-  faces.right[5] = { ...faces.right[5], slot: "add-friend" };
-  faces.left[0] = { ...faces.left[0], slot: "profile" };
-  faces.left[8] = { ...faces.left[8], slot: "settings" };
-  faces.back[0] = { ...faces.back[0], slot: "profile" };
-  faces.back[3] = { ...faces.back[3], slot: "friends" };
-  faces.back[4] = { ...faces.back[4], slot: "title" };
-  faces.back[5] = { ...faces.back[5], slot: "add-friend" };
-  faces.back[6] = { ...faces.back[6], slot: "settings-back" };
-  faces.back[8] = { ...faces.back[8], slot: "logout" };
-
-  return syncTaglineColumn(faces);
-}
-
-function rowHasSlot(face: CubeFaces["front"], row: 0 | 1 | 2, slot: string) {
-  const start = row * 3;
-  return [start, start + 1, start + 2].some((index) => face[index]?.slot === slot);
-}
-
-function turnDirsToSlot(faces: CubeFaces, row: 0 | 1 | 2, slot: string): TurnDir[] {
-  if (rowHasSlot(faces.front, row, slot)) {
-    return [];
-  }
-  if (rowHasSlot(faces.right, row, slot)) {
-    return [1];
-  }
-  if (rowHasSlot(faces.left, row, slot)) {
-    return [-1];
-  }
-  if (rowHasSlot(faces.back, row, slot)) {
-    return [-1, -1];
-  }
-  return [];
-}
-
-const SIGNED_IN_BOTTOM = ["settings", "logout", "settings-back"];
-
-function rowHasAnySlot(face: CubeFaces["front"], row: 0 | 1 | 2, slots: string[]) {
-  return slots.some((slot) => rowHasSlot(face, row, slot));
-}
-
-function turnDirsToClearBottom(faces: CubeFaces): TurnDir[] {
-  if (!rowHasAnySlot(faces.front, 2, SIGNED_IN_BOTTOM)) {
-    return [];
-  }
-  if (!rowHasAnySlot(faces.left, 2, SIGNED_IN_BOTTOM)) {
-    return [-1];
-  }
-  if (!rowHasAnySlot(faces.right, 2, SIGNED_IN_BOTTOM)) {
-    return [1];
-  }
-  return [-1, -1];
-}
-
 export function CubeBoard() {
-  const cube = useCube(createAuthCube, { afterTurn: syncTaglineColumn });
+  const cube = useCube();
   const auth = useAuth();
   const friends = useFriends(Boolean(auth.user));
+  const [screen, setScreen] = useState<BoardScreen>(LOGGED_OUT_SCREEN);
+  const [incomingSlots, setIncomingSlots] = useState<RowSlots | undefined>();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [registerError, setRegisterError] = useState<string | null>(null);
   const [formPending, setFormPending] = useState(false);
   const turnColRef = useRef(cube.turnCol);
   const turnRowRef = useRef(cube.turnRow);
-  const facesRef = useRef(cube.faces);
   const isBusyRef = useRef(cube.isBusy);
 
   turnColRef.current = cube.turnCol;
   turnRowRef.current = cube.turnRow;
-  facesRef.current = cube.faces;
   isBusyRef.current = cube.isBusy;
   const userRef = useRef(auth.user);
+  const screenRef = useRef(screen);
   const revealedRef = useRef(false);
   const transitioningRef = useRef(false);
   userRef.current = auth.user;
+  screenRef.current = screen;
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -108,20 +53,26 @@ export function CubeBoard() {
     return () => window.clearInterval(id);
   }, []);
 
-  async function turnRowTo(row: 0 | 1 | 2, slot: string) {
-    const dirs = turnDirsToSlot(facesRef.current, row, slot);
-    for (const dir of dirs) {
-      await turnRowRef.current(row, dir);
+  async function spinRow(row: SliceIndex, dir: TurnDir, patch: Partial<BoardScreen>) {
+    const next = { ...screenRef.current, ...patch };
+    if (sameRowScreen(screenRef.current, next, row)) {
+      return;
     }
-    return dirs.length > 0;
+
+    setIncomingSlots(rowSlots(overlayFor(next), row));
+    await turnRowRef.current(row, dir, () => {
+      screenRef.current = next;
+      setScreen(next);
+      setIncomingSlots(undefined);
+    });
   }
 
   async function revealSignedIn() {
     transitioningRef.current = true;
     try {
-      await turnRowTo(0, "profile");
-      await turnRowTo(2, "settings");
-      await turnRowTo(1, "friends");
+      await spinRow(0, -1, { top: "profile" });
+      await spinRow(2, -1, { bottom: "settings" });
+      await spinRow(1, 1, { middle: "friends" });
     } finally {
       transitioningRef.current = false;
     }
@@ -157,13 +108,10 @@ export function CubeBoard() {
   async function handleLogout() {
     transitioningRef.current = true;
     try {
+      await spinRow(0, 1, { top: "login" });
+      await spinRow(1, -1, { middle: "idle" });
+      await spinRow(2, 1, { bottom: "empty" });
       await auth.signOut();
-      await turnRowTo(0, "login");
-      await turnRowTo(1, "home-middle");
-      const bottomDirs = turnDirsToClearBottom(facesRef.current);
-      for (const dir of bottomDirs) {
-        await turnRowRef.current(2, dir);
-      }
     } finally {
       transitioningRef.current = false;
     }
@@ -184,9 +132,11 @@ export function CubeBoard() {
   return (
     <CubeView
       faces={cube.faces}
+      overlay={overlayFor(screen)}
       turn={cube.turn}
       angle={cube.angle}
       turning={cube.turning}
+      incomingSlots={incomingSlots}
       renderSlot={(slot) => {
         if (slot === "login") {
           return (
@@ -211,15 +161,12 @@ export function CubeBoard() {
             <p className="cube-copy">hey {auth.user.username}</p>
           ) : null;
         }
-        if (slot === "home-bottom" || slot === "home-middle") {
-          return null;
-        }
         if (slot === "settings") {
           return (
             <button
               type="button"
               className="cube-copy"
-              onClick={() => void turnRowTo(2, "logout")}
+              onClick={() => void spinRow(2, -1, { bottom: "menu" })}
             >
               settings
             </button>
@@ -230,7 +177,7 @@ export function CubeBoard() {
             <button
               type="button"
               className="cube-copy"
-              onClick={() => void turnRowTo(2, "settings")}
+              onClick={() => void spinRow(2, 1, { bottom: "settings" })}
             >
               back
             </button>
@@ -288,7 +235,7 @@ export function CubeBoard() {
               <button
                 type="button"
                 className="cube-copy__link"
-                onClick={() => void cube.turnRow(0, 1)}
+                onClick={() => void spinRow(0, 1, { top: "register" })}
               >
                 register
               </button>
@@ -302,7 +249,7 @@ export function CubeBoard() {
               <button
                 type="button"
                 className="cube-copy__link"
-                onClick={() => void cube.turnRow(0, -1)}
+                onClick={() => void spinRow(0, -1, { top: "login" })}
               >
                 login
               </button>

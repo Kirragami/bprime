@@ -3,13 +3,14 @@ import { inkForTile, type Cell, type RenderSlot } from "../../cube";
 
 type CubeCellProps = {
   cell: Cell;
+  slot?: string | null;
   active?: boolean;
   renderSlot?: RenderSlot;
 };
 
-export function CubeCell({ cell, active = false, renderSlot }: CubeCellProps) {
-  const content = cell.slot ? renderSlot?.(cell.slot, { active }) : null;
-  const isCentered = cell.slot === "title";
+export function CubeCell({ cell, slot = null, active = false, renderSlot }: CubeCellProps) {
+  const content = slot ? renderSlot?.(slot, { active }) : null;
+  const isCentered = slot === "title";
   const className = [
     "cube-board__cell",
     content && isCentered ? "cube-board__cell--form" : "",

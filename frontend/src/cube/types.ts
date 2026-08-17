@@ -17,7 +17,6 @@ export type TurnDir = 1 | -1;
 
 export type Cell = {
   color: CubeColor;
-  slot?: string;
 };
 
 export type Face = [Cell, Cell, Cell, Cell, Cell, Cell, Cell, Cell, Cell];

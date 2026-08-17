@@ -9,13 +9,14 @@ export type CubeController = {
   angle: number;
   turning: boolean;
   isBusy: () => boolean;
-  turnRow: (index: SliceIndex, dir?: TurnDir) => Promise<boolean>;
-  turnCol: (index: SliceIndex, dir?: TurnDir) => Promise<boolean>;
-  turnSlice: (turn: Turn) => Promise<boolean>;
+  turnRow: (index: SliceIndex, dir?: TurnDir, commit?: () => void) => Promise<boolean>;
+  turnCol: (index: SliceIndex, dir?: TurnDir, commit?: () => void) => Promise<boolean>;
+  turnSlice: (turn: Turn, commit?: () => void) => Promise<boolean>;
 };
 
 type QueuedTurn = {
   next: Turn;
+  commit?: () => void;
   resolve: (ok: boolean) => void;
 };
 
@@ -33,14 +34,7 @@ function nextFrame() {
   });
 }
 
-export type UseCubeOptions = {
-  afterTurn?: (faces: CubeFaces, turn: Turn) => CubeFaces;
-};
-
-export function useCube(
-  initial?: CubeFaces | (() => CubeFaces),
-  options?: UseCubeOptions,
-): CubeController {
+export function useCube(initial?: CubeFaces | (() => CubeFaces)): CubeController {
   const [faces, setFaces] = useState<CubeFaces>(() => {
     if (typeof initial === "function") {
       return initial();
@@ -52,12 +46,11 @@ export function useCube(
   const [turning, setTurning] = useState(false);
   const running = useRef(false);
   const queue = useRef<QueuedTurn[]>([]);
-  const afterTurnRef = useRef(options?.afterTurn);
-  afterTurnRef.current = options?.afterTurn;
 
   const isBusy = useCallback(() => running.current || queue.current.length > 0, []);
 
-  const play = useCallback(async (next: Turn) => {
+  const play = useCallback(async (item: QueuedTurn) => {
+    const next = item.next;
     setTurning(true);
     setAngle(0);
     setTurn(next);
@@ -66,10 +59,8 @@ export function useCube(
     setAngle(next.dir * -90);
     await wait(CUBE_TURN_MS);
 
-    setFaces((current) => {
-      const applied = applySliceTurn(current, next);
-      return afterTurnRef.current?.(applied, next) ?? applied;
-    });
+    setFaces((current) => applySliceTurn(current, next));
+    item.commit?.();
     setTurn(null);
     setAngle(0);
     setTurning(false);
@@ -88,30 +79,30 @@ export function useCube(
       if (!item) {
         break;
       }
-      await play(item.next);
+      await play(item);
       item.resolve(true);
     }
     running.current = false;
   }, [play]);
 
   const turnSlice = useCallback(
-    (next: Turn) =>
+    (next: Turn, commit?: () => void) =>
       new Promise<boolean>((resolve) => {
-        queue.current.push({ next, resolve });
+        queue.current.push({ next, commit, resolve });
         void drain();
       }),
     [drain],
   );
 
   const turnRow = useCallback(
-    (index: SliceIndex, dir: TurnDir = 1) =>
-      turnSlice({ axis: "row", index, dir }),
+    (index: SliceIndex, dir: TurnDir = 1, commit?: () => void) =>
+      turnSlice({ axis: "row", index, dir }, commit),
     [turnSlice],
   );
 
   const turnCol = useCallback(
-    (index: SliceIndex, dir: TurnDir = 1) =>
-      turnSlice({ axis: "col", index, dir }),
+    (index: SliceIndex, dir: TurnDir = 1, commit?: () => void) =>
+      turnSlice({ axis: "col", index, dir }, commit),
     [turnSlice],
   );
 

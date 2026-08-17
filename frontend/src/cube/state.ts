@@ -1,8 +1,8 @@
 import { randomCubeColor } from "./colors";
 import { FACE_IDS, type Cell, type CubeFaces, type Face, type Turn } from "./types";
 
-export function randomCell(slot?: string): Cell {
-  return slot ? { color: randomCubeColor(), slot } : { color: randomCubeColor() };
+export function randomCell(): Cell {
+  return { color: randomCubeColor() };
 }
 
 export function randomFace(): Face {
@@ -62,27 +62,6 @@ export function getColBelt(faces: CubeFaces, col: number) {
     back: take(faces.back, indices),
     down: take(faces.down, indices),
   };
-}
-
-export function syncTaglineColumn(faces: CubeFaces): CubeFaces {
-  const loginFirst = faces.front[1]?.slot !== "register-tagline";
-  const primary = loginFirst ? "tagline" : "register-tagline";
-  const secondary = loginFirst ? "register-tagline" : "tagline";
-  const next = cloneFaces(faces);
-
-  next.front[1] =
-    next.front[0]?.slot === "profile"
-      ? { color: next.front[1].color }
-      : { ...next.front[1], slot: primary };
-  next.up[1] = { ...next.up[1], slot: secondary };
-  next.back[1] = { ...next.back[1], slot: primary };
-  next.down[1] = { ...next.down[1], slot: secondary };
-
-  for (const id of ["front", "up", "back", "down"] as const) {
-    next[id][4] = { ...next[id][4], slot: "title" };
-  }
-
-  return next;
 }
 
 export function isSliceCell(axis: Turn["axis"], index: number, cellIndex: number) {

@@ -64,6 +64,35 @@ body {
   z-index: 0;
 }
 
+.cube-overlay-grid {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: transparent;
+}
+
+.cube-overlay__cell {
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+}
+
+.cube-overlay__cell--form {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+.cube-overlay__cell--copy {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: 1.1rem 1.25rem;
+  pointer-events: auto;
+}
+
 .cube--turning {
   position: absolute;
   inset: 0;
@@ -74,11 +103,13 @@ body {
 
 .cube--row-turn {
   --slice-r: var(--row-r);
+  z-index: 3;
   transform: translateZ(calc(-1 * var(--row-r)));
 }
 
 .cube--col-turn {
   --slice-r: var(--col-r);
+  z-index: 3;
   transform: translateZ(calc(-1 * var(--col-r)));
 }
 
