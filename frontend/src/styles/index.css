@@ -1,0 +1,73 @@
+:root {
+  color-scheme: dark;
+  --bg: #0c0c0c;
+  --panel: #161616;
+  --line: #2a2a2a;
+  --text: #ece8e1;
+  --muted: #9a948a;
+  --ok: #7d9a6d;
+  --warn: #c08a4a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.app-shell {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100%;
+}
+
+.app-shell__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1.2rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.app-shell__header h1 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 560;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+}
+
+.app-shell__main {
+  min-height: 0;
+}
+
+.status-badge {
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+}
+
+.status-badge--ok {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+
+.status-badge--warn {
+  color: var(--warn);
+  border-color: var(--warn);
+}
