@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import { CUBE_TURN_MS } from "./constants";
+import { CUBE_SETTLE_MS, CUBE_TURN_MS } from "./constants";
 import { applySliceTurn, createRandomCube } from "./state";
 import type { CubeFaces, SliceIndex, Turn, TurnDir } from "./types";
 
@@ -8,9 +8,15 @@ export type CubeController = {
   turn: Turn | null;
   angle: number;
   turning: boolean;
+  isBusy: () => boolean;
   turnRow: (index: SliceIndex, dir?: TurnDir) => Promise<boolean>;
   turnCol: (index: SliceIndex, dir?: TurnDir) => Promise<boolean>;
   turnSlice: (turn: Turn) => Promise<boolean>;
+};
+
+type QueuedTurn = {
+  next: Turn;
+  resolve: (ok: boolean) => void;
 };
 
 function wait(ms: number) {
@@ -44,19 +50,17 @@ export function useCube(
   const [turn, setTurn] = useState<Turn | null>(null);
   const [angle, setAngle] = useState(0);
   const [turning, setTurning] = useState(false);
-  const busy = useRef(false);
+  const running = useRef(false);
+  const queue = useRef<QueuedTurn[]>([]);
   const afterTurnRef = useRef(options?.afterTurn);
   afterTurnRef.current = options?.afterTurn;
 
-  const turnSlice = useCallback(async (next: Turn) => {
-    if (busy.current) {
-      return false;
-    }
+  const isBusy = useCallback(() => running.current || queue.current.length > 0, []);
 
-    busy.current = true;
+  const play = useCallback(async (next: Turn) => {
     setTurning(true);
-    setTurn(next);
     setAngle(0);
+    setTurn(next);
 
     await nextFrame();
     setAngle(next.dir * -90);
@@ -69,9 +73,35 @@ export function useCube(
     setTurn(null);
     setAngle(0);
     setTurning(false);
-    busy.current = false;
-    return true;
+    await nextFrame();
+    await wait(CUBE_SETTLE_MS);
   }, []);
+
+  const drain = useCallback(async () => {
+    if (running.current) {
+      return;
+    }
+
+    running.current = true;
+    while (queue.current.length > 0) {
+      const item = queue.current.shift();
+      if (!item) {
+        break;
+      }
+      await play(item.next);
+      item.resolve(true);
+    }
+    running.current = false;
+  }, [play]);
+
+  const turnSlice = useCallback(
+    (next: Turn) =>
+      new Promise<boolean>((resolve) => {
+        queue.current.push({ next, resolve });
+        void drain();
+      }),
+    [drain],
+  );
 
   const turnRow = useCallback(
     (index: SliceIndex, dir: TurnDir = 1) =>
@@ -85,5 +115,5 @@ export function useCube(
     [turnSlice],
   );
 
-  return { faces, turn, angle, turning, turnRow, turnCol, turnSlice };
+  return { faces, turn, angle, turning, isBusy, turnRow, turnCol, turnSlice };
 }

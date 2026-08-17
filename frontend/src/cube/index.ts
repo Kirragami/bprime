@@ -1,6 +1,6 @@
 export { CUBE_COLORS, randomCubeColor } from "./colors";
 export { inkForTile } from "./ink";
-export { CUBE_TURN_EASE, CUBE_TURN_MS } from "./constants";
+export { CUBE_SETTLE_MS, CUBE_TURN_EASE, CUBE_TURN_MS } from "./constants";
 export {
   applySliceTurn,
   colIndices,

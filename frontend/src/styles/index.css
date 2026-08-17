@@ -34,7 +34,7 @@ body {
   --seam: clamp(4px, 0.55vmin, 8px);
   --tile-r: clamp(7px, 1.15vmin, 16px);
   --plastic: #141414;
-  --turn-ms: 720ms;
+  --turn-ms: 480ms;
   --turn-ease: cubic-bezier(0.45, 0.05, 0.18, 1);
   --slab-h: calc((100vh - 4 * var(--seam)) / 3);
   --slab-w: calc((100vw - 4 * var(--seam)) / 3);
@@ -49,8 +49,8 @@ body {
 
 .cube-face-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(3, 1fr);
+  grid-template-columns: repeat(3, var(--slab-w));
+  grid-template-rows: repeat(3, var(--slab-h));
   gap: var(--seam);
   padding: var(--seam);
   width: 100%;
@@ -108,7 +108,7 @@ body {
   position: absolute;
   inset: 0;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, var(--slab-w));
   gap: var(--seam);
   padding: 0 var(--seam);
   backface-visibility: hidden;
@@ -117,7 +117,7 @@ body {
 
 .cube-slab-wall--col {
   grid-template-columns: 1fr;
-  grid-template-rows: repeat(3, 1fr);
+  grid-template-rows: repeat(3, var(--slab-h));
   padding: var(--seam) 0;
 }
 
@@ -251,11 +251,12 @@ body {
   position: relative;
   z-index: 1;
   margin: 0;
-  font-family: "Archivo Black", "Outfit", sans-serif;
-  font-size: clamp(4.4rem, 12vmin, 8.5rem);
+  font-family: "Bungee", "Archivo Black", sans-serif;
+  font-size: clamp(3.6rem, 10vmin, 7.2rem);
+  font-style: normal;
   font-weight: 400;
-  letter-spacing: 0;
-  line-height: 0.9;
+  letter-spacing: 0.02em;
+  line-height: 0.92;
   text-transform: lowercase;
 }
 
@@ -272,14 +273,91 @@ body {
   text-transform: lowercase;
 }
 
-.cube-copy__link {
+.cube-copy__link,
+button.cube-copy {
   padding: 0;
   border: 0;
   background: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.cube-copy__link {
   font: inherit;
   text-decoration: underline;
   text-underline-offset: 0.16em;
+}
+
+.cube-copy-stack {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+.friends-list {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-width: 100%;
+}
+
+.friends-list__empty,
+.friends-list__items {
+  margin: 0;
+  padding: 0;
+  color: var(--tile-ink);
+  font-family: "Space Grotesk", "Outfit", sans-serif;
+  font-size: clamp(0.95rem, 2.2vmin, 1.25rem);
+  font-weight: 600;
+  line-height: 1.25;
+  list-style: none;
+}
+
+.friends-list__empty {
+  opacity: 0.7;
+}
+
+.add-friend-row {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+}
+
+.add-friend-row input {
+  flex: 1;
+  min-width: 0;
+  border-right: 0;
+}
+
+.add-friend-row__submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.7rem;
+  padding: 0;
+  border: 2px solid var(--tile-ink);
+  background: var(--tile-button);
+  color: var(--tile-button-ink);
   cursor: pointer;
+}
+
+.add-friend-row__submit svg {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.add-friend-row__submit:hover:not(:disabled) {
+  filter: brightness(0.92);
+}
+
+.add-friend-row__submit:disabled {
+  cursor: wait;
+  opacity: 0.7;
 }
 
 .login-form {
@@ -345,6 +423,15 @@ body {
   outline: none;
 }
 
+.login-form__error {
+  margin: 0;
+  max-width: 100%;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--tile-ink);
+}
+
 .login-form__submit {
   align-self: flex-start;
   width: auto;
@@ -358,8 +445,13 @@ body {
   cursor: pointer;
 }
 
-.login-form__submit:hover {
+.login-form__submit:hover:not(:disabled) {
   filter: brightness(0.92);
+}
+
+.login-form__submit:disabled {
+  cursor: wait;
+  opacity: 0.7;
 }
 
 .login-form__register:hover {

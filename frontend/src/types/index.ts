@@ -8,3 +8,9 @@ export type Item = {
   title: string;
   createdAt: string;
 };
+
+export type User = {
+  id: number;
+  username: string;
+  createdAt: string;
+};

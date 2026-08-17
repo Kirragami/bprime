@@ -26,6 +26,9 @@ frontend/dist/
 frontend/.vite/
 frontend/*.tsbuildinfo
 
+# Compose SQLite bind
+/data/
+
 # Backend
 backend/bin/
 backend/tmp/

@@ -47,7 +47,7 @@ export function CubeView({
             <CubeCell
               key={index}
               cell={cell}
-              active={!turning && Boolean(cell.slot)}
+              active={Boolean(cell.slot)}
               renderSlot={renderSlot}
             />
           );

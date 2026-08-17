@@ -70,7 +70,10 @@ export function syncTaglineColumn(faces: CubeFaces): CubeFaces {
   const secondary = loginFirst ? "register-tagline" : "tagline";
   const next = cloneFaces(faces);
 
-  next.front[1] = { ...next.front[1], slot: primary };
+  next.front[1] =
+    next.front[0]?.slot === "profile"
+      ? { color: next.front[1].color }
+      : { ...next.front[1], slot: primary };
   next.up[1] = { ...next.up[1], slot: secondary };
   next.back[1] = { ...next.back[1], slot: primary };
   next.down[1] = { ...next.down[1], slot: secondary };

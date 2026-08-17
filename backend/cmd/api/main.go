@@ -28,10 +28,17 @@ func main() {
 	}
 
 	itemRepo := repository.NewItemRepository(db)
-	handlers := handler.New(db, itemRepo)
+	userRepo := repository.NewUserRepository(db)
+	sessionRepo := repository.NewSessionRepository(db)
+	friendRepo := repository.NewFriendRepository(db)
+	handlers := handler.New(db, itemRepo, userRepo, sessionRepo, friendRepo, cfg)
 	mux := router.New(cfg, handlers)
 
-	log.Printf("api listening on :%s", cfg.Port)
+	if cfg.StaticDir != "" {
+		log.Printf("listening on :%s (api + %s)", cfg.Port, cfg.StaticDir)
+	} else {
+		log.Printf("api listening on :%s", cfg.Port)
+	}
 	if err := http.ListenAndServe(":"+cfg.Port, mux); err != nil {
 		log.Fatalf("server: %v", err)
 	}

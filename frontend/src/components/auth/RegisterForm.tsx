@@ -1,4 +1,15 @@
-export function RegisterForm() {
+import { useState } from "react";
+
+type RegisterFormProps = {
+  pending?: boolean;
+  error?: string | null;
+  onSubmit: (username: string, password: string) => Promise<void>;
+};
+
+export function RegisterForm({ pending = false, error, onSubmit }: RegisterFormProps) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+
   return (
     <form
       className="login-form"
@@ -6,6 +17,7 @@ export function RegisterForm() {
       spellCheck={false}
       onSubmit={(event) => {
         event.preventDefault();
+        void onSubmit(username, password);
       }}
     >
       <p className="login-form__title">register</p>
@@ -13,6 +25,8 @@ export function RegisterForm() {
         type="text"
         name="username"
         placeholder="username"
+        value={username}
+        onChange={(event) => setUsername(event.target.value)}
         autoComplete="off"
         autoCorrect="off"
         autoCapitalize="off"
@@ -20,18 +34,23 @@ export function RegisterForm() {
         data-lpignore="true"
         data-1p-ignore="true"
         data-form-type="other"
+        disabled={pending}
       />
       <input
         type="password"
         name="password"
         placeholder="password"
+        value={password}
+        onChange={(event) => setPassword(event.target.value)}
         autoComplete="off"
         spellCheck={false}
         data-lpignore="true"
         data-1p-ignore="true"
         data-form-type="other"
+        disabled={pending}
       />
-      <button type="submit" className="login-form__submit">
+      {error ? <p className="login-form__error">{error}</p> : null}
+      <button type="submit" className="login-form__submit" disabled={pending}>
         create
       </button>
     </form>
