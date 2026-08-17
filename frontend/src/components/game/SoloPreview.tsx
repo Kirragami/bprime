@@ -1,19 +1,7 @@
-type SoloPreviewProps = {
-  scramble: string;
-  image: string;
-};
-
-export function SoloPreview({ scramble, image }: SoloPreviewProps) {
-  if (!scramble && !image) {
+export function SoloPreview({ image }: { image: string }) {
+  if (!image) {
     return null;
   }
 
-  return (
-    <div className="solo-preview">
-      {scramble ? <p className="solo-preview__scramble">{scramble}</p> : null}
-      {image ? (
-        <div className="solo-preview__image" dangerouslySetInnerHTML={{ __html: image }} />
-      ) : null}
-    </div>
-  );
+  return <div className="solo-preview" dangerouslySetInnerHTML={{ __html: image }} />;
 }

@@ -4,18 +4,19 @@ import { generateScramble } from "../game/scramble";
 
 export type TimerPhase = "idle" | "inspect" | "ready" | "running" | "done";
 
-const inspectMs = 15_000;
 const readyHoldMs = 300;
 
-export function useSoloSession(active: boolean) {
+export function useSoloSession(active: boolean, lookSec = 15) {
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [scramble, setScramble] = useState("");
   const [scrambleImage, setScrambleImage] = useState("");
   const [phase, setPhase] = useState<TimerPhase>("idle");
   const [elapsed, setElapsed] = useState(0);
+  const inspectMs = Math.max(0, lookSec) * 1000;
   const [inspectLeft, setInspectLeft] = useState(inspectMs);
   const startedAt = useRef(0);
   const inspectStartedAt = useRef(0);
+  const inspectMsRef = useRef(inspectMs);
   const holdTimer = useRef(0);
   const frame = useRef(0);
   const phaseRef = useRef<TimerPhase>("idle");
@@ -25,6 +26,7 @@ export function useSoloSession(active: boolean) {
 
   phaseRef.current = phase;
   scrambleRef.current = scramble;
+  inspectMsRef.current = inspectMs;
 
   const nextScramble = useCallback(async () => {
     const token = ++scrambleToken.current;
@@ -44,7 +46,7 @@ export function useSoloSession(active: boolean) {
     setScrambleImage("");
     setPhase("idle");
     setElapsed(0);
-    setInspectLeft(inspectMs);
+    setInspectLeft(inspectMsRef.current);
     spaceDown.current = false;
     void nextScramble();
   }, [nextScramble]);
@@ -73,7 +75,7 @@ export function useSoloSession(active: boolean) {
         setElapsed(performance.now() - startedAt.current);
       }
       if (phaseRef.current === "inspect") {
-        setInspectLeft(Math.max(0, inspectMs - (performance.now() - inspectStartedAt.current)));
+        setInspectLeft(Math.max(0, inspectMsRef.current - (performance.now() - inspectStartedAt.current)));
       }
       frame.current = requestAnimationFrame(tick);
     };
@@ -93,7 +95,7 @@ export function useSoloSession(active: boolean) {
       }
       setPhase("idle");
       setElapsed(0);
-      setInspectLeft(inspectMs);
+      setInspectLeft(inspectMsRef.current);
       void nextScramble();
       return next;
     });
@@ -129,10 +131,10 @@ export function useSoloSession(active: boolean) {
       if (current === "done") {
         return;
       }
-      if (current === "idle") {
+      if (current === "idle" && inspectMsRef.current > 0) {
         inspectStartedAt.current = performance.now();
         setPhase("inspect");
-        setInspectLeft(inspectMs);
+        setInspectLeft(inspectMsRef.current);
       }
       holdTimer.current = window.setTimeout(() => {
         if (phaseRef.current === "inspect" || phaseRef.current === "idle") {

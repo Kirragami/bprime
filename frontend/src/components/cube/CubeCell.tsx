@@ -11,7 +11,7 @@ type CubeCellProps = {
 export function CubeCell({ cell, slot = null, active = false, renderSlot }: CubeCellProps) {
   const content = slot ? renderSlot?.(slot, { active }) : null;
   const isCentered = slot === "title" || slot === "title-modes";
-  const isFill = slot === "solo-stage" || slot === "solo-preview";
+  const isFill = slot === "solo-stage" || slot === "solo-preview" || slot === "solo-scramble";
   const className = [
     "cube-board__cell",
     content && isCentered ? "cube-board__cell--form" : "",

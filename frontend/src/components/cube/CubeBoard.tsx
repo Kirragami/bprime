@@ -10,6 +10,7 @@ import {
   sameRowScreen,
   useCube,
   withCol,
+  withRow,
   type BoardScreen,
   type Overlay,
   type RowSlots,
@@ -23,11 +24,15 @@ import { useFriends } from "../../hooks/useFriends";
 import { saveMeasuring } from "../../api/measurings";
 import { GameModes } from "../game/GameModes";
 import { SoloActions } from "../game/SoloActions";
+import { SoloClockSetting } from "../game/SoloClockSetting";
 import { SoloHistory } from "../game/SoloHistory";
+import { SoloLookSetting } from "../game/SoloLookSetting";
 import { SoloPreview } from "../game/SoloPreview";
+import { SoloScramble } from "../game/SoloScramble";
 import { SoloTimer } from "../game/SoloTimer";
 import { warmScrambler } from "../../game/scramble";
 import { useSoloSession } from "../../hooks/useSoloSession";
+import { useSoloSettings } from "../../hooks/useSoloSettings";
 import { CubeView } from "./CubeView";
 
 const AUTO_COL_MS = 4000;
@@ -44,7 +49,8 @@ export function CubeBoard() {
   const [formPending, setFormPending] = useState(false);
   const [savePending, setSavePending] = useState(false);
   const [soloLive, setSoloLive] = useState(false);
-  const solo = useSoloSession(soloLive);
+  const soloPrefs = useSoloSettings();
+  const solo = useSoloSession(soloLive, soloPrefs.lookSec);
   const turnColRef = useRef(cube.turnCol);
   const turnRowRef = useRef(cube.turnRow);
   const isBusyRef = useRef(cube.isBusy);
@@ -97,21 +103,70 @@ export function CubeBoard() {
     });
   }
 
+  async function spinOverlayRow(row: SliceIndex, dir: TurnDir, nextOverlay: Overlay) {
+    setIncomingSlots(rowSlots(nextOverlay, row));
+    await turnRowRef.current(row, dir, () => {
+      overlayRef.current = withRow(overlayRef.current, row, rowSlots(nextOverlay, row));
+      setOverlay(overlayRef.current);
+      setIncomingSlots(undefined);
+    });
+  }
+
+  function isSoloPlay(play = screenRef.current.play) {
+    return play === "solo" || play === "solo-settings";
+  }
+
   async function leaveSolo() {
+    if (!isSoloPlay() || transitioningRef.current) {
+      return;
+    }
+    transitioningRef.current = true;
+    try {
+      if (screenRef.current.play === "solo-settings") {
+        const soloScreen = { ...screenRef.current, play: "solo" as const };
+        await spinCol(2, 1, overlayFor(soloScreen));
+        screenRef.current = soloScreen;
+        setScreen(soloScreen);
+      }
+      const nextScreen = { ...screenRef.current, play: "none" as const };
+      const nextOverlay = overlayFor(nextScreen);
+      await spinCol(1, 1, nextOverlay);
+      await spinOverlayRow(1, -1, nextOverlay);
+      await spinCol(0, 1, nextOverlay);
+      screenRef.current = nextScreen;
+      setScreen(nextScreen);
+    } finally {
+      setSoloLive(false);
+      transitioningRef.current = false;
+    }
+  }
+
+  async function openSoloSettings() {
     if (screenRef.current.play !== "solo" || transitioningRef.current) {
       return;
     }
     transitioningRef.current = true;
     try {
-      const nextScreen = { ...screenRef.current, play: "none" as const };
-      const nextOverlay = overlayFor(nextScreen);
-      await spinCol(0, 1, nextOverlay);
-      await spinCol(1, -1, nextOverlay);
-      await spinCol(2, 1, nextOverlay);
+      const nextScreen = { ...screenRef.current, play: "solo-settings" as const };
+      await spinCol(2, -1, overlayFor(nextScreen));
       screenRef.current = nextScreen;
       setScreen(nextScreen);
     } finally {
-      setSoloLive(false);
+      transitioningRef.current = false;
+    }
+  }
+
+  async function closeSoloSettings() {
+    if (screenRef.current.play !== "solo-settings" || transitioningRef.current) {
+      return;
+    }
+    transitioningRef.current = true;
+    try {
+      const nextScreen = { ...screenRef.current, play: "solo" as const };
+      await spinCol(2, 1, overlayFor(nextScreen));
+      screenRef.current = nextScreen;
+      setScreen(nextScreen);
+    } finally {
       transitioningRef.current = false;
     }
   }
@@ -130,7 +185,7 @@ export function CubeBoard() {
   }
 
   async function enterSolo() {
-    if (screenRef.current.play === "solo" || transitioningRef.current) {
+    if (isSoloPlay() || transitioningRef.current) {
       return;
     }
     transitioningRef.current = true;
@@ -139,8 +194,8 @@ export function CubeBoard() {
       const nextScreen = { ...screenRef.current, play: "solo" as const };
       const nextOverlay = overlayFor(nextScreen);
       await spinCol(0, -1, nextOverlay);
-      await spinCol(1, 1, nextOverlay);
-      await spinCol(2, -1, nextOverlay);
+      await spinOverlayRow(1, 1, nextOverlay);
+      await spinCol(1, -1, nextOverlay);
       screenRef.current = nextScreen;
       setScreen(nextScreen);
     } finally {
@@ -259,11 +314,30 @@ export function CubeBoard() {
             <button
               type="button"
               className="cube-copy"
-              onClick={() => void spinRow(2, -1, { bottom: "menu" })}
+              onClick={() => {
+                if (screenRef.current.play === "solo") {
+                  void openSoloSettings();
+                  return;
+                }
+                void spinRow(2, -1, { bottom: "menu" });
+              }}
             >
               settings
             </button>
           );
+        }
+        if (slot === "solo-back") {
+          return (
+            <button type="button" className="cube-copy" onClick={() => void closeSoloSettings()}>
+              back
+            </button>
+          );
+        }
+        if (slot === "solo-look") {
+          return <SoloLookSetting lookSec={soloPrefs.lookSec} onCycle={soloPrefs.cycleLook} />;
+        }
+        if (slot === "solo-clock") {
+          return <SoloClockSetting hideTimer={soloPrefs.hideTimer} onToggle={soloPrefs.toggleTimer} />;
         }
         if (slot === "settings-back") {
           return (
@@ -318,11 +392,15 @@ export function CubeBoard() {
               elapsed={solo.elapsed}
               inspectLeft={solo.inspectLeft}
               averageMs={solo.averageMs}
+              hideTimer={soloPrefs.hideTimer}
             />
           );
         }
+        if (slot === "solo-scramble") {
+          return <SoloScramble scramble={solo.scramble} />;
+        }
         if (slot === "solo-preview") {
-          return <SoloPreview scramble={solo.scramble} image={solo.scrambleImage} />;
+          return <SoloPreview image={solo.scrambleImage} />;
         }
         if (slot === "solo-actions") {
           return (

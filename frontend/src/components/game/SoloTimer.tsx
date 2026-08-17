@@ -6,9 +6,16 @@ type SoloTimerProps = {
   elapsed: number;
   inspectLeft: number;
   averageMs: number | null;
+  hideTimer?: boolean;
 };
 
-export function SoloTimer({ phase, elapsed, inspectLeft, averageMs }: SoloTimerProps) {
+export function SoloTimer({
+  phase,
+  elapsed,
+  inspectLeft,
+  averageMs,
+  hideTimer = false,
+}: SoloTimerProps) {
   if (phase === "done" && averageMs !== null) {
     return (
       <div className="solo-result">
@@ -18,9 +25,21 @@ export function SoloTimer({ phase, elapsed, inspectLeft, averageMs }: SoloTimerP
     );
   }
 
+  if (hideTimer && phase === "running") {
+    return (
+      <div className="solo-stage is-running is-hidden">
+        <div className="solo-timer-pulse" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </div>
+      </div>
+    );
+  }
+
   const inspectSeconds = Math.ceil(inspectLeft / 1000);
   const value =
-    phase === "inspect" || phase === "ready"
+    phase === "inspect" || (phase === "ready" && inspectLeft > 0)
       ? String(inspectSeconds)
       : formatTime(elapsed);
 
