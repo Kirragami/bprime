@@ -1169,6 +1169,14 @@ button.cube-copy--hit:focus-visible {
   flex: 1;
 }
 
+.friends-list__best {
+  flex: 0 0 auto;
+  color: var(--tile-muted);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
 .friend-avatar {
   flex: 0 0 auto;
   width: clamp(1.85rem, 12cqmin, 2.5rem);

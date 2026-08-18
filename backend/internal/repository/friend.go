@@ -128,7 +128,11 @@ func (r *FriendRepository) List(ctx context.Context, userID int64) (models.Frien
 	}
 
 	friends, err := r.queryUsers(ctx, `
-		SELECT u.id, u.username, u.created_at, u.avatar_url
+		SELECT u.id, u.username, u.created_at, u.avatar_url, (
+			SELECT MIN(m.average_ms)
+			FROM measurings m
+			WHERE m.user_id = u.id
+		)
 		FROM friendships f
 		JOIN users u ON u.id = CASE
 			WHEN f.requester_id = ? THEN f.addressee_id
@@ -193,13 +197,29 @@ func (r *FriendRepository) queryUsers(ctx context.Context, query string, args ..
 
 	users := make([]models.User, 0)
 	for rows.Next() {
-		user, err := scanUser(rows)
+		user, err := scanFriend(rows)
 		if err != nil {
 			return nil, err
 		}
 		users = append(users, user)
 	}
 	return users, rows.Err()
+}
+
+func scanFriend(row interface{ Scan(dest ...any) error }) (models.User, error) {
+	var user models.User
+	var avatar sql.NullString
+	var best sql.NullInt64
+	if err := row.Scan(&user.ID, &user.Username, &user.CreatedAt, &avatar, &best); err != nil {
+		return models.User{}, err
+	}
+	if avatar.Valid {
+		user.AvatarURL = avatar.String
+	}
+	if best.Valid {
+		user.BestMs = best.Int64
+	}
+	return user, nil
 }
 
 func (r *FriendRepository) queryRequests(ctx context.Context, query string, args ...any) ([]models.FriendRequest, error) {

@@ -5,6 +5,7 @@ type User struct {
 	Username  string `json:"username"`
 	AvatarURL string `json:"avatarUrl,omitempty"`
 	CreatedAt string `json:"createdAt"`
+	BestMs    int64  `json:"bestMs,omitempty"`
 }
 
 type UserRecord struct {

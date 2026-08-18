@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { formatTime } from "../../game/ao5";
 import type { FriendRequest, User } from "../../types";
 import { FriendAvatar } from "./FriendAvatar";
 
@@ -27,6 +28,7 @@ function Person({
         {user.username}
         {pendingLabel ? <span className="friends-list__pending"> {pendingLabel}</span> : null}
       </span>
+      {user.bestMs ? <span className="friends-list__best">{formatTime(user.bestMs)}</span> : null}
       {children}
     </li>
   );
