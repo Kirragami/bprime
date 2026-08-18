@@ -395,6 +395,7 @@ export function CubeBoard() {
           return auth.user ? (
             <ProfileTile
               user={auth.user}
+              bestMs={bests.times[0]?.timeMs}
               errorMessage={auth.errorMessage}
               onUpload={async (file) => {
                 await auth.setAvatar(file);

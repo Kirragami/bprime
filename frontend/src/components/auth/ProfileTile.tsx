@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ChangeEvent, type PointerEvent, type WheelEvent } from "react";
 import { mediaUrl } from "../../api/client";
+import { formatTime } from "../../game/ao5";
 import type { User } from "../../types";
 
 const maxAvatarBytes = 5 * 1024 * 1024;
@@ -16,6 +17,7 @@ type Draft = {
 
 type ProfileTileProps = {
   user: User;
+  bestMs?: number;
   onUpload: (file: File) => Promise<void>;
   errorMessage: (err: unknown) => string;
 };
@@ -42,7 +44,7 @@ function imageHeight(draft: Draft) {
   return draft.image.naturalHeight * draft.scale;
 }
 
-export function ProfileTile({ user, onUpload, errorMessage }: ProfileTileProps) {
+export function ProfileTile({ user, bestMs, onUpload, errorMessage }: ProfileTileProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const viewRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
@@ -246,7 +248,10 @@ export function ProfileTile({ user, onUpload, errorMessage }: ProfileTileProps) 
         hidden
         onChange={handleFile}
       />
-      <p className="cube-copy">{user.username}</p>
+      <div className="profile-tile__copy">
+        <p className="cube-copy">{user.username}</p>
+        {bestMs != null ? <p className="profile-tile__best">{formatTime(bestMs)}</p> : null}
+      </div>
       {draft ? (
         <div className="profile-tile__actions">
           <button type="button" className="cube-copy" disabled={pending} onClick={() => void setPhoto()}>
