@@ -5,10 +5,11 @@ export type LookSec = (typeof LOOK_OPTIONS)[number];
 export type SoloPrefs = {
   lookSec: LookSec;
   hideTimer: boolean;
+  hideOthers: boolean;
 };
 
 const storageKey = "bprime.solo.prefs";
-const defaults: SoloPrefs = { lookSec: 15, hideTimer: false };
+const defaults: SoloPrefs = { lookSec: 15, hideTimer: false, hideOthers: false };
 
 function isLookSec(value: unknown): value is LookSec {
   return LOOK_OPTIONS.includes(value as LookSec);
@@ -24,6 +25,7 @@ export function loadSoloPrefs(): SoloPrefs {
     return {
       lookSec: isLookSec(parsed.lookSec) ? parsed.lookSec : defaults.lookSec,
       hideTimer: Boolean(parsed.hideTimer),
+      hideOthers: Boolean(parsed.hideOthers),
     };
   } catch {
     return defaults;

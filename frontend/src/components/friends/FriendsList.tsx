@@ -8,8 +8,10 @@ type FriendsListProps = {
   incoming: FriendRequest[];
   outgoing: FriendRequest[];
   actingId?: number | null;
+  inviteName?: string | null;
   onAccept: (id: number) => void;
   onReject: (id: number) => void;
+  onJoinInvite?: () => void;
 };
 
 function Person({
@@ -39,14 +41,21 @@ export function FriendsList({
   incoming,
   outgoing,
   actingId = null,
+  inviteName = null,
   onAccept,
   onReject,
+  onJoinInvite,
 }: FriendsListProps) {
-  const empty = friends.length === 0 && incoming.length === 0 && outgoing.length === 0;
+  const empty = friends.length === 0 && incoming.length === 0 && outgoing.length === 0 && !inviteName;
 
   return (
     <div className="friends-list">
       <p className="cube-copy">friends</p>
+      {inviteName && onJoinInvite ? (
+        <button type="button" className="friends-list__action" onClick={onJoinInvite}>
+          join {inviteName}
+        </button>
+      ) : null}
       {empty ? <p className="friends-list__empty">no friends yet</p> : null}
 
       {incoming.length > 0 ? (

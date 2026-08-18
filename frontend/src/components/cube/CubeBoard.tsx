@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { LoginForm } from "../auth/LoginForm";
 import { ProfileTile } from "../auth/ProfileTile";
 import { RegisterForm } from "../auth/RegisterForm";
@@ -23,13 +23,21 @@ import { AddFriendForm } from "../friends/AddFriendForm";
 import { FriendsList } from "../friends/FriendsList";
 import { useAuth } from "../../hooks/useAuth";
 import { useFriends } from "../../hooks/useFriends";
+import { getLobby, type Lobby, type LobbyMember } from "../../api/lobbies";
 import { saveMeasuring, type SavedAttempt, type SavedMeasuring } from "../../api/measurings";
 import { BestTimes } from "../game/BestTimes";
 import { GameModes } from "../game/GameModes";
 import { HistoryAttemptDetail } from "../game/HistoryAttemptDetail";
 import { HistoryAttempts } from "../game/HistoryAttempts";
 import { HistoryList } from "../game/HistoryList";
+import { HistoryPlayers } from "../game/HistoryPlayers";
 import { MultiIcon, SoloIcon } from "../game/ModeIcon";
+import { MultiInvite } from "../game/MultiInvite";
+import { MultiMembers } from "../game/MultiMembers";
+import { MultiClockSetting } from "../game/MultiClockSetting";
+import { MultiRoom } from "../game/MultiRoom";
+import { MultiStage } from "../game/MultiStage";
+import { MultiTitle } from "../game/MultiTitle";
 import { SoloActions } from "../game/SoloActions";
 import { SoloClockSetting } from "../game/SoloClockSetting";
 import { SoloHistory } from "../game/SoloHistory";
@@ -38,11 +46,14 @@ import { SoloPreview } from "../game/SoloPreview";
 import { SoloScramble } from "../game/SoloScramble";
 import { SoloTimer } from "../game/SoloTimer";
 import { SoloTitle } from "../game/SoloTitle";
-import { warmScrambler } from "../../game/scramble";
-import { formatTime } from "../../game/ao5";
+import { generateScramble, warmScrambler } from "../../game/scramble";
+import { averageOfFive, formatTime } from "../../game/ao5";
+import { hasAttempt, isLobbyHost, lobbyCanStart, lobbyInvite, lobbyMember, memberAttempts } from "../../game/lobby";
 import { formatRecordWhen } from "../../game/when";
 import { useBestTimes } from "../../hooks/useBestTimes";
 import { useHistory } from "../../hooks/useHistory";
+import { useLobby } from "../../hooks/useLobby";
+import { useMultiTimer } from "../../hooks/useMultiTimer";
 import { useSoloSession } from "../../hooks/useSoloSession";
 import { useSoloSettings } from "../../hooks/useSoloSettings";
 import { CubeView } from "./CubeView";
@@ -79,8 +90,28 @@ export function CubeBoard() {
   const solo = useSoloSession(soloLive, soloPrefs.lookSec);
   const bests = useBestTimes(Boolean(auth.user));
   const history = useHistory(Boolean(auth.user));
+  const lobby = useLobby(Boolean(auth.user));
   const [historySession, setHistorySession] = useState<SavedMeasuring | null>(null);
   const [historyAttempt, setHistoryAttempt] = useState<SavedAttempt | null>(null);
+  const [historyGame, setHistoryGame] = useState<Lobby | null>(null);
+  const [heldLobby, setHeldLobby] = useState<Lobby | null>(null);
+  const homeHistoryItems = useMemo(
+    () => history.items.filter((item) => (item.attemptCount ?? 1) > 0),
+    [history.items],
+  );
+  const multiHistoryItems = useMemo(
+    () => homeHistoryItems.filter((item) => item.mode === "multi"),
+    [homeHistoryItems],
+  );
+  const playLobby = heldLobby ?? lobby.lobby;
+  const me = lobbyMember(playLobby, auth.user?.id);
+  const multiAttempts = memberAttempts(me);
+  const multiWaiting = hasAttempt(me, playLobby?.attemptIndex ?? 0);
+  const multiLive =
+    Boolean(lobby.lobby) && lobby.lobby?.status === "attempt" && !multiWaiting;
+  const multiTimer = useMultiTimer(multiLive, lobby.lobby?.scramble ?? "", soloPrefs.lookSec, (timeMs) => {
+    void lobby.postTime(timeMs);
+  });
   const turnColRef = useRef(cube.turnCol);
   const turnRowRef = useRef(cube.turnRow);
   const isBusyRef = useRef(cube.isBusy);
@@ -111,6 +142,10 @@ export function CubeBoard() {
   async function spinRow(row: SliceIndex, dir: TurnDir, patch: Partial<BoardScreen>) {
     const next = { ...screenRef.current, ...patch };
     if (sameRowScreen(screenRef.current, next, row)) {
+      screenRef.current = next;
+      overlayRef.current = overlayFor(next);
+      setScreen(next);
+      setOverlay(overlayRef.current);
       return;
     }
 
@@ -158,6 +193,14 @@ export function CubeBoard() {
 
   function isSoloPlay(play = screenRef.current.play) {
     return play === "solo" || play === "solo-settings";
+  }
+
+  function isMultiPlay(play = screenRef.current.play) {
+    return play === "multi" || play === "multi-settings";
+  }
+
+  function isBusyPlay(play = screenRef.current.play) {
+    return isSoloPlay(play) || isMultiPlay(play);
   }
 
   async function leaveSolo() {
@@ -227,7 +270,7 @@ export function CubeBoard() {
   }
 
   async function enterSolo() {
-    if (isSoloPlay() || transitioningRef.current) {
+    if (isBusyPlay() || transitioningRef.current) {
       return;
     }
     transitioningRef.current = true;
@@ -236,12 +279,114 @@ export function CubeBoard() {
       const nextScreen = { ...screenRef.current, play: "solo" as const, top: "profile" as const };
       setHistoryAttempt(null);
       setHistorySession(null);
+      setHistoryGame(null);
       await playOverlayTurns(enterSoloTurns, overlayFor(nextScreen));
       screenRef.current = nextScreen;
       setScreen(nextScreen);
     } finally {
       transitioningRef.current = false;
     }
+  }
+
+  async function enterMulti(existing = lobby.lobby) {
+    if (isBusyPlay() || transitioningRef.current) {
+      return;
+    }
+    transitioningRef.current = true;
+    try {
+      let current = existing;
+      const mine = lobbyMember(current, auth.user?.id);
+      if (current && mine?.state === "invited") {
+        current = await lobby.join(current.id);
+      } else if (!current) {
+        current = await lobby.create();
+      }
+      if (!current) {
+        return;
+      }
+      const nextScreen = {
+        ...screenRef.current,
+        play: "multi" as const,
+        multi: current.status === "open" ? ("lobby" as const) : ("play" as const),
+        top: "profile" as const,
+      };
+      setHistoryAttempt(null);
+      setHistorySession(null);
+      setHistoryGame(null);
+      await playOverlayTurns(enterSoloTurns, overlayFor(nextScreen));
+      screenRef.current = nextScreen;
+      setScreen(nextScreen);
+    } finally {
+      transitioningRef.current = false;
+    }
+  }
+
+  async function leaveMulti(notify = true) {
+    if (!isMultiPlay() || transitioningRef.current) {
+      return;
+    }
+    transitioningRef.current = true;
+    setHeldLobby(lobby.lobby);
+    try {
+      if (notify && lobby.lobby) {
+        await lobby.leave();
+      }
+      if (screenRef.current.play === "multi-settings") {
+        const playScreen = { ...screenRef.current, play: "multi" as const };
+        await spinCol(2, 1, overlayFor(playScreen));
+        screenRef.current = playScreen;
+        setScreen(playScreen);
+      }
+      const nextScreen = { ...screenRef.current, play: "none" as const, multi: "lobby" as const };
+      await playOverlayTurns(leaveSoloTurns, overlayFor(nextScreen));
+      screenRef.current = nextScreen;
+      setScreen(nextScreen);
+      if (notify) {
+        void history.refresh();
+        void bests.refresh();
+      }
+    } finally {
+      setHeldLobby(null);
+      transitioningRef.current = false;
+    }
+  }
+
+  async function openMultiSettings() {
+    if (screenRef.current.play !== "multi" || transitioningRef.current) {
+      return;
+    }
+    transitioningRef.current = true;
+    try {
+      const nextScreen = { ...screenRef.current, play: "multi-settings" as const };
+      await spinCol(2, -1, overlayFor(nextScreen));
+      screenRef.current = nextScreen;
+      setScreen(nextScreen);
+    } finally {
+      transitioningRef.current = false;
+    }
+  }
+
+  async function closeMultiSettings() {
+    if (screenRef.current.play !== "multi-settings" || transitioningRef.current) {
+      return;
+    }
+    transitioningRef.current = true;
+    try {
+      const nextScreen = { ...screenRef.current, play: "multi" as const };
+      await spinCol(2, 1, overlayFor(nextScreen));
+      screenRef.current = nextScreen;
+      setScreen(nextScreen);
+    } finally {
+      transitioningRef.current = false;
+    }
+  }
+
+  async function startMultiAttempt() {
+    if (!isLobbyHost(playLobby, auth.user?.id) || (playLobby?.status === "open" && !lobbyCanStart(playLobby))) {
+      return;
+    }
+    const next = await generateScramble();
+    await lobby.postScramble(next.moves);
   }
 
   async function revealSignedIn() {
@@ -276,6 +421,46 @@ export function CubeBoard() {
     void revealSignedIn();
   }, [auth.loading, auth.user]);
 
+  useEffect(() => {
+    if (!isMultiPlay() || !lobby.lobby) {
+      return;
+    }
+    const next = lobby.lobby.status === "open" ? ("lobby" as const) : ("play" as const);
+    if (screenRef.current.multi === next) {
+      return;
+    }
+    const patched = { ...screenRef.current, multi: next };
+    screenRef.current = patched;
+    setScreen(patched);
+    setOverlay(overlayFor(patched));
+  }, [lobby.lobby, lobby.lobby?.status]);
+
+  useEffect(() => {
+    if (!auth.user || auth.loading || !revealedRef.current || transitioningRef.current || isBusyPlay()) {
+      return;
+    }
+    const current = lobby.lobby;
+    const mine = lobbyMember(current, auth.user.id);
+    if (
+      current &&
+      mine?.state === "joined" &&
+      (current.status === "attempt" ||
+        current.status === "hold" ||
+        (current.status === "done" && memberAttempts(mine).length === 5))
+    ) {
+      void enterMulti(current);
+    }
+  }, [auth.loading, auth.user, lobby.lobby]);
+
+  useEffect(() => {
+    if (!isMultiPlay() || !lobby.lobby || lobby.lobby.status !== "done") {
+      return;
+    }
+    if (memberAttempts(lobbyMember(lobby.lobby, auth.user?.id)).length < 5) {
+      void leaveMulti(true);
+    }
+  }, [auth.user, lobby.lobby]);
+
   async function handleLogin(username: string, password: string) {
     setFormPending(true);
     setLoginError(null);
@@ -296,6 +481,7 @@ export function CubeBoard() {
       await spinRow(2, 1, { bottom: "empty" });
       setHistoryAttempt(null);
       setHistorySession(null);
+      setHistoryGame(null);
       await auth.signOut();
     } finally {
       transitioningRef.current = false;
@@ -309,11 +495,46 @@ export function CubeBoard() {
     transitioningRef.current = true;
     try {
       const item = await history.load(id);
-      setHistorySession(item);
       setHistoryAttempt(null);
+      if (item.lobbyId) {
+        try {
+          const game = await getLobby(item.lobbyId);
+          setHistoryGame(game);
+          setHistorySession(null);
+          await spinRow(0, 1, { top: "history-game" });
+          return;
+        } catch {
+          // show this player's session if the lobby snapshot is gone
+        }
+      }
+      setHistoryGame(null);
+      setHistorySession(item);
       await spinRow(0, 1, { top: "history-session" });
     } catch {
       setHistorySession(null);
+      setHistoryGame(null);
+    } finally {
+      transitioningRef.current = false;
+    }
+  }
+
+  async function openHistoryPlayer(member: LobbyMember) {
+    if (transitioningRef.current) {
+      return;
+    }
+    transitioningRef.current = true;
+    try {
+      const times = member.results.map((result) => result.timeMs);
+      setHistorySession({
+        id: member.user.id,
+        mode: "multi",
+        averageMs: times.length === 5 ? averageOfFive(times) : 0,
+        attempts: member.results,
+        attemptCount: member.results.length,
+        createdAt: historyGame?.createdAt ?? "",
+      });
+      setHistoryAttempt(null);
+      await spinRow(0, 1, { top: "history-session" });
     } finally {
       transitioningRef.current = false;
     }
@@ -344,8 +565,13 @@ export function CubeBoard() {
         return;
       }
       if (screenRef.current.top === "history-session") {
-        await spinRow(0, -1, { top: "profile" });
+        await spinRow(0, -1, { top: historyGame ? "history-game" : "profile" });
         setHistorySession(null);
+        return;
+      }
+      if (screenRef.current.top === "history-game") {
+        await spinRow(0, -1, { top: "profile" });
+        setHistoryGame(null);
       }
     } finally {
       transitioningRef.current = false;
@@ -403,8 +629,13 @@ export function CubeBoard() {
             />
           ) : null;
         }
-        if (slot === "history") {
-          return <HistoryList items={history.items} onOpen={(id) => void openHistorySession(id)} />;
+        if (slot === "history" || slot === "history-multi") {
+          return (
+            <HistoryList
+              items={slot === "history-multi" ? multiHistoryItems : homeHistoryItems}
+              onOpen={(id) => void openHistorySession(id)}
+            />
+          );
         }
         if (slot === "history-back") {
           return (
@@ -413,16 +644,29 @@ export function CubeBoard() {
             </button>
           );
         }
-        if (slot === "history-avg" && historySession) {
+        if (slot === "history-avg" && (historySession || historyGame)) {
+          const multi = Boolean(historyGame || historySession?.mode === "multi");
+          const complete = (historySession?.attemptCount ?? historySession?.attempts?.length ?? 5) === 5;
           return (
             <div className="history-summary">
               <span className="history-summary__icon" aria-hidden="true">
-                {historySession.mode === "multi" ? <MultiIcon /> : <SoloIcon />}
+                {multi ? <MultiIcon /> : <SoloIcon />}
               </span>
-              <p className="history-summary__avg">{formatTime(historySession.averageMs)}</p>
-              <p className="history-summary__when">{formatRecordWhen(historySession.createdAt)}</p>
+              <p className={`history-summary__avg${historySession && !complete ? " history-summary__avg--word" : ""}`}>
+                {historySession
+                  ? complete
+                    ? formatTime(historySession.averageMs)
+                    : "incomplete"
+                  : "multi"}
+              </p>
+              <p className="history-summary__when">
+                {formatRecordWhen(historySession?.createdAt ?? historyGame?.createdAt ?? "")}
+              </p>
             </div>
           );
+        }
+        if (slot === "history-players" && historyGame) {
+          return <HistoryPlayers lobby={historyGame} onOpen={(member) => void openHistoryPlayer(member)} />;
         }
         if (slot === "history-attempts" && historySession?.attempts) {
           return (
@@ -453,11 +697,32 @@ export function CubeBoard() {
                   void openSoloSettings();
                   return;
                 }
+                if (screenRef.current.play === "multi") {
+                  void openMultiSettings();
+                  return;
+                }
                 void spinRow(2, -1, { bottom: "menu" });
               }}
             >
               settings
             </button>
+          );
+        }
+        if (slot === "multi-back") {
+          return (
+            <button type="button" className="cube-copy cube-copy--hit" onClick={() => void closeMultiSettings()}>
+              back
+            </button>
+          );
+        }
+        if (slot === "multi-clock") {
+          return (
+            <MultiClockSetting
+              hideTimer={soloPrefs.hideTimer}
+              hideOthers={soloPrefs.hideOthers}
+              onToggleSelf={soloPrefs.toggleTimer}
+              onToggleOthers={soloPrefs.toggleOthers}
+            />
           );
         }
         if (slot === "solo-back") {
@@ -496,14 +761,17 @@ export function CubeBoard() {
           );
         }
         if (slot === "friends") {
+          const invite = lobbyInvite(lobby.lobby, auth.user?.id);
           return (
             <FriendsList
               friends={friends.friends}
               incoming={friends.incoming}
               outgoing={friends.outgoing}
               actingId={friends.actingId}
+              inviteName={invite?.host?.username ?? null}
               onAccept={(id) => void friends.acceptRequest(id)}
               onReject={(id) => void friends.rejectRequest(id)}
+              onJoinInvite={() => void enterMulti(invite?.lobby)}
             />
           );
         }
@@ -522,8 +790,57 @@ export function CubeBoard() {
         if (slot === "solo-title") {
           return <SoloTitle />;
         }
+        if (slot === "multi-title") {
+          return <MultiTitle />;
+        }
+        if (slot === "multi-members") {
+          return <MultiMembers lobby={playLobby} />;
+        }
+        if (slot === "multi-invite") {
+          const taken = new Set(
+            (playLobby?.members ?? []).filter((member) => member.state !== "left").map((member) => member.user.id),
+          );
+          return (
+            <MultiInvite
+              friends={friends.friends.filter((friend) => !taken.has(friend.id))}
+              onInvite={(id) => {
+                if (isLobbyHost(playLobby, auth.user?.id)) {
+                  void lobby.invite(id);
+                }
+              }}
+            />
+          );
+        }
+        if (slot === "multi-room" && playLobby) {
+          return <MultiRoom lobby={playLobby} selfId={auth.user?.id} hideOthers={soloPrefs.hideOthers} />;
+        }
+        if (slot === "multi-stage") {
+          return (
+            <MultiStage
+              status={playLobby?.status ?? "open"}
+              host={isLobbyHost(playLobby, auth.user?.id)}
+              canStart={lobbyCanStart(playLobby)}
+              waiting={multiWaiting}
+              phase={multiTimer.phase}
+              elapsed={multiTimer.elapsed}
+              inspectLeft={multiTimer.inspectLeft}
+              averageMs={multiAttempts.length === 5 ? averageOfFive(multiAttempts.map((item) => item.timeMs)) : null}
+              hideTimer={soloPrefs.hideTimer}
+              onStart={() => void startMultiAttempt()}
+            />
+          );
+        }
+        if (slot === "multi-actions") {
+          return (
+            <SoloActions
+              done={false}
+              cancelLabel="leave"
+              onCancel={() => void leaveMulti(true)}
+            />
+          );
+        }
         if (slot === "solo-history") {
-          return <SoloHistory attempts={solo.attempts} />;
+          return <SoloHistory attempts={isMultiPlay(screen.play) ? multiAttempts : solo.attempts} />;
         }
         if (slot === "solo-stage") {
           return (
@@ -537,10 +854,10 @@ export function CubeBoard() {
           );
         }
         if (slot === "solo-scramble") {
-          return <SoloScramble scramble={solo.scramble} />;
+          return <SoloScramble scramble={isMultiPlay(screen.play) ? playLobby?.scramble ?? "" : solo.scramble} />;
         }
         if (slot === "solo-preview") {
-          return <SoloPreview image={solo.scrambleImage} />;
+          return <SoloPreview image={isMultiPlay(screen.play) ? multiTimer.image : solo.scrambleImage} />;
         }
         if (slot === "solo-actions") {
           return (
@@ -556,7 +873,7 @@ export function CubeBoard() {
           return <p className="cube-title">bprime</p>;
         }
         if (slot === "title-modes") {
-          return <GameModes onSolo={() => void enterSolo()} />;
+          return <GameModes onSolo={() => void enterSolo()} onMulti={() => void enterMulti()} />;
         }
         if (slot === "tagline") {
           return <p className="cube-copy">login to play with friends</p>;

@@ -12,6 +12,8 @@ export type SavedMeasuring = {
   mode: "solo" | "multi";
   averageMs: number;
   attempts?: SavedAttempt[];
+  attemptCount?: number;
+  lobbyId?: number;
   createdAt: string;
 };
 

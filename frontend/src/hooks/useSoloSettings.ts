@@ -20,5 +20,13 @@ export function useSoloSettings() {
     });
   }, []);
 
-  return { ...prefs, cycleLook, toggleTimer };
+  const toggleOthers = useCallback(() => {
+    setPrefs((current) => {
+      const next = { ...current, hideOthers: !current.hideOthers };
+      saveSoloPrefs(next);
+      return next;
+    });
+  }, []);
+
+  return { ...prefs, cycleLook, toggleTimer, toggleOthers };
 }

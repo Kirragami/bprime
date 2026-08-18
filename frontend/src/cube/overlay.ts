@@ -1,10 +1,11 @@
 import type { SliceIndex, TurnAxis, TurnDir } from "./types";
 
 export type BoardScreen = {
-  top: "login" | "register" | "profile" | "history-session" | "history-attempt";
+  top: "login" | "register" | "profile" | "history-game" | "history-session" | "history-attempt";
   middle: "idle" | "friends";
   bottom: "empty" | "settings" | "menu";
-  play: "none" | "solo" | "solo-settings";
+  play: "none" | "solo" | "solo-settings" | "multi" | "multi-settings";
+  multi: "lobby" | "play";
 };
 
 export type Overlay = [
@@ -66,6 +67,7 @@ export const LOGGED_OUT_SCREEN: BoardScreen = {
   middle: "idle",
   bottom: "empty",
   play: "none",
+  multi: "lobby",
 };
 
 export function overlayFor(screen: BoardScreen): Overlay {
@@ -77,16 +79,28 @@ export function overlayFor(screen: BoardScreen): Overlay {
     return ["solo-title", "solo-history", "solo-look", "solo-scramble", "solo-stage", "solo-clock", "solo-preview", "solo-actions", "solo-back"];
   }
 
-  const top: RowSlots =
-    screen.top === "login"
+  if (screen.play === "multi") {
+    const overlay: Overlay =
+      screen.multi === "lobby"
+        ? ["multi-title", "multi-members", "history-multi", "multi-invite", "multi-stage", null, null, "multi-actions", "settings"]
+        : ["multi-title", "solo-history", "multi-room", "solo-scramble", "multi-stage", null, "solo-preview", "multi-actions", "settings"];
+    return withHistoryTop(overlay, screen);
+  }
+
+  if (screen.play === "multi-settings") {
+    const overlay: Overlay =
+      screen.multi === "lobby"
+        ? ["multi-title", "multi-members", "solo-look", "multi-invite", "multi-stage", "multi-clock", null, "multi-actions", "multi-back"]
+        : ["multi-title", "solo-history", "solo-look", "solo-scramble", "multi-stage", "multi-clock", "solo-preview", "multi-actions", "multi-back"];
+    return withHistoryTop(overlay, screen);
+  }
+
+  const top = historyTop(screen) ??
+    (screen.top === "login"
       ? ["login", "tagline", "register-cta"]
       : screen.top === "register"
         ? ["register", "register-tagline", "login-cta"]
-        : screen.top === "history-session"
-          ? ["history-back", "history-avg", "history-attempts"]
-          : screen.top === "history-attempt"
-            ? ["history-back", "history-time", "history-detail"]
-            : ["profile", null, "history"];
+        : ["profile", null, "history"]);
 
   const middle: RowSlots =
     screen.middle === "friends"
@@ -127,6 +141,27 @@ export function withRow(overlay: Overlay, row: SliceIndex, slots: RowSlots): Ove
   next[start + 1] = slots[1];
   next[start + 2] = slots[2];
   return next;
+}
+
+function historyTop(screen: BoardScreen): RowSlots | null {
+  if (screen.top === "history-game") {
+    return ["history-back", "history-avg", "history-players"];
+  }
+  if (screen.top === "history-session") {
+    return ["history-back", "history-avg", "history-attempts"];
+  }
+  if (screen.top === "history-attempt") {
+    return ["history-back", "history-time", "history-detail"];
+  }
+  return null;
+}
+
+function withHistoryTop(overlay: Overlay, screen: BoardScreen): Overlay {
+  const top = historyTop(screen);
+  if (!top) {
+    return overlay;
+  }
+  return withRow(overlay, 0, top);
 }
 
 export function sameRowScreen(

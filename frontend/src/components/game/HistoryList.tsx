@@ -23,7 +23,9 @@ export function HistoryList({ items, onOpen }: HistoryListProps) {
                   {item.mode === "multi" ? <MultiIcon /> : <SoloIcon />}
                 </span>
                 <span className="history-list__copy">
-                  <span className="history-list__avg">{formatTime(item.averageMs)}</span>
+                  <span className="history-list__avg">
+                    {item.mode === "multi" && (item.attemptCount ?? 5) < 5 ? "incomplete" : formatTime(item.averageMs)}
+                  </span>
                   <span className="history-list__when">{formatRecordWhen(item.createdAt)}</span>
                 </span>
               </button>

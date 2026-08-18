@@ -10,17 +10,23 @@ type CubeCellProps = {
 
 export function CubeCell({ cell, slot = null, active = false, renderSlot }: CubeCellProps) {
   const content = slot ? renderSlot?.(slot, { active }) : null;
-  const isCentered = slot === "title" || slot === "title-modes" || slot === "solo-title";
+  const isCentered = slot === "title" || slot === "title-modes" || slot === "solo-title" || slot === "multi-title";
   const isFill =
     slot === "solo-stage" ||
     slot === "solo-preview" ||
     slot === "solo-scramble" ||
     slot === "bests" ||
     slot === "history" ||
+    slot === "history-multi" ||
+    slot === "history-players" ||
     slot === "history-attempts" ||
     slot === "history-detail" ||
     slot === "history-avg" ||
-    slot === "history-time";
+    slot === "history-time" ||
+    slot === "multi-stage" ||
+    slot === "multi-members" ||
+    slot === "multi-invite" ||
+    slot === "multi-room";
   const className = [
     "cube-board__cell",
     content && isCentered ? "cube-board__cell--form" : "",

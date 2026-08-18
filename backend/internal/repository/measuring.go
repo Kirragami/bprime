@@ -74,6 +74,105 @@ func (r *MeasuringRepository) Create(ctx context.Context, userID int64, mode str
 	return r.Get(ctx, userID, id)
 }
 
+func (r *MeasuringRepository) SaveLobby(ctx context.Context, item models.Lobby) error {
+	if item.ID < 1 {
+		return nil
+	}
+	for _, member := range item.Members {
+		if member.State == "invited" {
+			continue
+		}
+		if item.Status != "done" && member.State != "left" {
+			continue
+		}
+		if err := r.saveLobbyMember(ctx, item.ID, member); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *MeasuringRepository) saveLobbyMember(ctx context.Context, lobbyID int64, member models.LobbyMember) error {
+	var existing int64
+	err := r.db.QueryRowContext(ctx, `
+		SELECT measuring_id
+		FROM measuring_lobbies
+		WHERE lobby_id = ? AND user_id = ?
+	`, lobbyID, member.User.ID).Scan(&existing)
+	if err == nil {
+		return nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("lookup lobby measuring: %w", err)
+	}
+
+	attempts := make([]models.Attempt, 0, len(member.Results))
+	for _, result := range member.Results {
+		if result.TimeMs < 1 || result.Scramble == "" {
+			continue
+		}
+		attempts = append(attempts, models.Attempt{
+			Index:    result.Index,
+			TimeMs:   result.TimeMs,
+			Scramble: result.Scramble,
+		})
+	}
+	if len(attempts) == 0 {
+		return nil
+	}
+	sort.Slice(attempts, func(i, j int) bool { return attempts[i].Index < attempts[j].Index })
+	average := int64(0)
+	if len(attempts) == 5 {
+		average = ao5(attempts)
+	}
+
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin lobby measuring: %w", err)
+	}
+	defer tx.Rollback()
+
+	result, err := tx.ExecContext(ctx, `
+		INSERT INTO measurings (user_id, mode, average_ms)
+		VALUES (?, 'multi', ?)
+	`, member.User.ID, average)
+	if err != nil {
+		return fmt.Errorf("insert lobby measuring: %w", err)
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return fmt.Errorf("lobby measuring id: %w", err)
+	}
+	for _, attempt := range attempts {
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO attempts (measuring_id, attempt_index, time_ms, scramble)
+			VALUES (?, ?, ?, ?)
+		`, id, attempt.Index, attempt.TimeMs, attempt.Scramble); err != nil {
+			return fmt.Errorf("insert lobby attempt: %w", err)
+		}
+	}
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO measuring_lobbies (measuring_id, lobby_id, user_id)
+		VALUES (?, ?, ?)
+	`, id, lobbyID, member.User.ID); err != nil {
+		return fmt.Errorf("link lobby measuring: %w", err)
+	}
+	return tx.Commit()
+}
+
+func (r *MeasuringRepository) attachLobby(ctx context.Context, item *models.Measuring) {
+	var lobbyID sql.NullInt64
+	err := r.db.QueryRowContext(ctx, `
+		SELECT lobby_id
+		FROM measuring_lobbies
+		WHERE measuring_id = ?
+	`, item.ID).Scan(&lobbyID)
+	if err == nil && lobbyID.Valid {
+		item.LobbyID = lobbyID.Int64
+	}
+	item.AttemptCount = len(item.Attempts)
+}
+
 func (r *MeasuringRepository) Get(ctx context.Context, userID, id int64) (models.Measuring, error) {
 	var item models.Measuring
 	err := r.db.QueryRowContext(ctx, `
@@ -107,7 +206,11 @@ func (r *MeasuringRepository) Get(ctx context.Context, userID, id int64) (models
 		}
 		item.Attempts = append(item.Attempts, attempt)
 	}
-	return item, rows.Err()
+	if err := rows.Err(); err != nil {
+		return models.Measuring{}, err
+	}
+	r.attachLobby(ctx, &item)
+	return item, nil
 }
 
 func (r *MeasuringRepository) List(ctx context.Context, userID int64, limit int) ([]models.Measuring, error) {
@@ -115,10 +218,14 @@ func (r *MeasuringRepository) List(ctx context.Context, userID int64, limit int)
 		limit = 50
 	}
 	rows, err := r.db.QueryContext(ctx, `
-		SELECT id, mode, average_ms, created_at
-		FROM measurings
-		WHERE user_id = ?
-		ORDER BY created_at DESC, id DESC
+		SELECT m.id, m.mode, m.average_ms, m.created_at,
+			(SELECT COUNT(*) FROM attempts a WHERE a.measuring_id = m.id),
+			ml.lobby_id
+		FROM measurings m
+		LEFT JOIN measuring_lobbies ml ON ml.measuring_id = m.id
+		WHERE m.user_id = ?
+			AND (SELECT COUNT(*) FROM attempts a WHERE a.measuring_id = m.id) > 0
+		ORDER BY m.created_at DESC, m.id DESC
 		LIMIT ?
 	`, userID, limit)
 	if err != nil {
@@ -129,8 +236,12 @@ func (r *MeasuringRepository) List(ctx context.Context, userID int64, limit int)
 	items := make([]models.Measuring, 0)
 	for rows.Next() {
 		var item models.Measuring
-		if err := rows.Scan(&item.ID, &item.Mode, &item.AverageMs, &item.CreatedAt); err != nil {
+		var lobbyID sql.NullInt64
+		if err := rows.Scan(&item.ID, &item.Mode, &item.AverageMs, &item.CreatedAt, &item.AttemptCount, &lobbyID); err != nil {
 			return nil, fmt.Errorf("scan measuring: %w", err)
+		}
+		if lobbyID.Valid {
+			item.LobbyID = lobbyID.Int64
 		}
 		items = append(items, item)
 	}
@@ -145,6 +256,7 @@ func (r *MeasuringRepository) BestTimes(ctx context.Context, userID int64, limit
 		SELECT average_ms, created_at
 		FROM measurings
 		WHERE user_id = ?
+			AND (SELECT COUNT(*) FROM attempts WHERE measuring_id = measurings.id) = 5
 		ORDER BY average_ms ASC, created_at ASC
 		LIMIT ?
 	`, userID, limit)

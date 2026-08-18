@@ -30,21 +30,28 @@ function OverlayCell({
 }) {
   const content = slot ? renderSlot?.(slot, { active: true }) : null;
   const ink = inkForTile(color);
-  const isTitle = slot === "title" || slot === "title-modes" || slot === "solo-title";
+  const isTitle = slot === "title" || slot === "title-modes" || slot === "solo-title" || slot === "multi-title";
   const isFill =
     slot === "solo-stage" ||
     slot === "solo-preview" ||
     slot === "solo-scramble" ||
     slot === "bests" ||
     slot === "history" ||
+    slot === "history-multi" ||
+    slot === "history-players" ||
     slot === "history-attempts" ||
     slot === "history-detail" ||
     slot === "history-avg" ||
-    slot === "history-time";
+    slot === "history-time" ||
+    slot === "multi-stage" ||
+    slot === "multi-members" ||
+    slot === "multi-invite" ||
+    slot === "multi-room";
   const isProfile = slot === "profile";
-  const isSoloDock = slot === "solo-history" || slot === "solo-actions";
+  const isSoloDock = slot === "solo-history" || slot === "solo-actions" || slot === "multi-actions";
   const className = [
     "cube-overlay__cell",
+    content ? "cube-overlay__cell--live" : "",
     content && isTitle ? "cube-overlay__cell--form" : "",
     content && isFill ? "cube-overlay__cell--timer" : "",
     content && isProfile ? "cube-overlay__cell--profile" : "",

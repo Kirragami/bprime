@@ -16,9 +16,10 @@ const modes = [
 
 type GameModesProps = {
   onSolo?: () => void;
+  onMulti?: () => void;
 };
 
-export function GameModes({ onSolo }: GameModesProps) {
+export function GameModes({ onSolo, onMulti }: GameModesProps) {
   const [hint, setHint] = useState<string | null>(null);
 
   return (
@@ -38,6 +39,9 @@ export function GameModes({ onSolo }: GameModesProps) {
             onClick={() => {
               if (mode.id === "solo") {
                 onSolo?.();
+              }
+              if (mode.id === "multi") {
+                onMulti?.();
               }
             }}
           >

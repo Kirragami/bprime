@@ -174,6 +174,17 @@ func (r *FriendRepository) List(ctx context.Context, userID int64) (models.Frien
 	return graph, nil
 }
 
+func (r *FriendRepository) AreFriends(ctx context.Context, a, b int64) (bool, error) {
+	row, err := r.FindPair(ctx, a, b)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return row.Status == "accepted", nil
+}
+
 func (r *FriendRepository) FindPair(ctx context.Context, a, b int64) (Friendship, error) {
 	var row Friendship
 	err := r.db.QueryRowContext(ctx, `

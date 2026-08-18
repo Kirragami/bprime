@@ -7,11 +7,13 @@ type Attempt struct {
 }
 
 type Measuring struct {
-	ID        int64     `json:"id"`
-	Mode      string    `json:"mode"`
-	AverageMs int64     `json:"averageMs"`
-	Attempts  []Attempt `json:"attempts"`
-	CreatedAt string    `json:"createdAt"`
+	ID           int64     `json:"id"`
+	Mode         string    `json:"mode"`
+	AverageMs    int64     `json:"averageMs"`
+	Attempts     []Attempt `json:"attempts"`
+	AttemptCount int       `json:"attemptCount"`
+	LobbyID      int64     `json:"lobbyId,omitempty"`
+	CreatedAt    string    `json:"createdAt"`
 }
 
 type BestTime struct {

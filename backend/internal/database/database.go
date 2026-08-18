@@ -90,6 +90,54 @@ CREATE TABLE IF NOT EXISTS attempts (
 );
 CREATE INDEX IF NOT EXISTS attempts_measuring_idx ON attempts (measuring_id);
 
+CREATE TABLE IF NOT EXISTS lobbies (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	host_id INTEGER NOT NULL,
+	status TEXT NOT NULL CHECK (status IN ('open', 'attempt', 'hold', 'done')),
+	attempt_index INTEGER NOT NULL DEFAULT 1,
+	scramble TEXT NOT NULL DEFAULT '',
+	created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+	FOREIGN KEY (host_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS lobbies_host_idx ON lobbies (host_id, status);
+
+CREATE TABLE IF NOT EXISTS lobby_members (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	lobby_id INTEGER NOT NULL,
+	user_id INTEGER NOT NULL,
+	state TEXT NOT NULL CHECK (state IN ('invited', 'joined', 'left')),
+	created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+	FOREIGN KEY (lobby_id) REFERENCES lobbies(id) ON DELETE CASCADE,
+	FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+	UNIQUE (lobby_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS lobby_members_user_idx ON lobby_members (user_id, state);
+
+CREATE TABLE IF NOT EXISTS lobby_results (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	lobby_id INTEGER NOT NULL,
+	user_id INTEGER NOT NULL,
+	attempt_index INTEGER NOT NULL,
+	time_ms INTEGER NOT NULL,
+	scramble TEXT NOT NULL,
+	created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+	FOREIGN KEY (lobby_id) REFERENCES lobbies(id) ON DELETE CASCADE,
+	FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+	UNIQUE (lobby_id, user_id, attempt_index)
+);
+CREATE INDEX IF NOT EXISTS lobby_results_lobby_idx ON lobby_results (lobby_id, attempt_index);
+
+CREATE TABLE IF NOT EXISTS measuring_lobbies (
+	measuring_id INTEGER PRIMARY KEY,
+	lobby_id INTEGER NOT NULL,
+	user_id INTEGER NOT NULL,
+	FOREIGN KEY (measuring_id) REFERENCES measurings(id) ON DELETE CASCADE,
+	FOREIGN KEY (lobby_id) REFERENCES lobbies(id) ON DELETE CASCADE,
+	FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+	UNIQUE (lobby_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS measuring_lobbies_lobby_idx ON measuring_lobbies (lobby_id);
+
 `
 
 	if _, err := db.Exec(schema); err != nil {

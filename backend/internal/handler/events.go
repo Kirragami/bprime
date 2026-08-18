@@ -37,11 +37,15 @@ func (h *Handler) Events(w http.ResponseWriter, r *http.Request) {
 		select {
 		case <-r.Context().Done():
 			return
-		case payload, ok := <-ch:
+		case event, ok := <-ch:
 			if !ok {
 				return
 			}
-			fmt.Fprintf(w, "event: friends\ndata: %s\n\n", payload)
+			name := event.Name
+			if name == "" {
+				name = "friends"
+			}
+			fmt.Fprintf(w, "event: %s\ndata: %s\n\n", name, event.Data)
 			flusher.Flush()
 		case <-heartbeat.C:
 			fmt.Fprint(w, ": ping\n\n")
