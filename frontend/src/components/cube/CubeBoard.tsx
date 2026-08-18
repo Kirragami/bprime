@@ -23,9 +23,13 @@ import { AddFriendForm } from "../friends/AddFriendForm";
 import { FriendsList } from "../friends/FriendsList";
 import { useAuth } from "../../hooks/useAuth";
 import { useFriends } from "../../hooks/useFriends";
-import { saveMeasuring } from "../../api/measurings";
+import { saveMeasuring, type SavedAttempt, type SavedMeasuring } from "../../api/measurings";
 import { BestTimes } from "../game/BestTimes";
 import { GameModes } from "../game/GameModes";
+import { HistoryAttemptDetail } from "../game/HistoryAttemptDetail";
+import { HistoryAttempts } from "../game/HistoryAttempts";
+import { HistoryList } from "../game/HistoryList";
+import { MultiIcon, SoloIcon } from "../game/ModeIcon";
 import { SoloActions } from "../game/SoloActions";
 import { SoloClockSetting } from "../game/SoloClockSetting";
 import { SoloHistory } from "../game/SoloHistory";
@@ -35,7 +39,10 @@ import { SoloScramble } from "../game/SoloScramble";
 import { SoloTimer } from "../game/SoloTimer";
 import { SoloTitle } from "../game/SoloTitle";
 import { warmScrambler } from "../../game/scramble";
+import { formatTime } from "../../game/ao5";
+import { formatRecordWhen } from "../../game/when";
 import { useBestTimes } from "../../hooks/useBestTimes";
+import { useHistory } from "../../hooks/useHistory";
 import { useSoloSession } from "../../hooks/useSoloSession";
 import { useSoloSettings } from "../../hooks/useSoloSettings";
 import { CubeView } from "./CubeView";
@@ -71,6 +78,9 @@ export function CubeBoard() {
   const soloPrefs = useSoloSettings();
   const solo = useSoloSession(soloLive, soloPrefs.lookSec);
   const bests = useBestTimes(Boolean(auth.user));
+  const history = useHistory(Boolean(auth.user));
+  const [historySession, setHistorySession] = useState<SavedMeasuring | null>(null);
+  const [historyAttempt, setHistoryAttempt] = useState<SavedAttempt | null>(null);
   const turnColRef = useRef(cube.turnCol);
   const turnRowRef = useRef(cube.turnRow);
   const isBusyRef = useRef(cube.isBusy);
@@ -209,7 +219,7 @@ export function CubeBoard() {
     setSavePending(true);
     try {
       await saveMeasuring("solo", solo.attempts);
-      await bests.refresh();
+      await Promise.all([bests.refresh(), history.refresh()]);
       await leaveSolo();
     } finally {
       setSavePending(false);
@@ -223,7 +233,9 @@ export function CubeBoard() {
     transitioningRef.current = true;
     setSoloLive(true);
     try {
-      const nextScreen = { ...screenRef.current, play: "solo" as const };
+      const nextScreen = { ...screenRef.current, play: "solo" as const, top: "profile" as const };
+      setHistoryAttempt(null);
+      setHistorySession(null);
       await playOverlayTurns(enterSoloTurns, overlayFor(nextScreen));
       screenRef.current = nextScreen;
       setScreen(nextScreen);
@@ -282,7 +294,59 @@ export function CubeBoard() {
       await spinRow(0, 1, { top: "login" });
       await spinRow(1, -1, { middle: "idle" });
       await spinRow(2, 1, { bottom: "empty" });
+      setHistoryAttempt(null);
+      setHistorySession(null);
       await auth.signOut();
+    } finally {
+      transitioningRef.current = false;
+    }
+  }
+
+  async function openHistorySession(id: number) {
+    if (transitioningRef.current || isSoloPlay()) {
+      return;
+    }
+    transitioningRef.current = true;
+    try {
+      const item = await history.load(id);
+      setHistorySession(item);
+      setHistoryAttempt(null);
+      await spinRow(0, 1, { top: "history-session" });
+    } catch {
+      setHistorySession(null);
+    } finally {
+      transitioningRef.current = false;
+    }
+  }
+
+  async function openHistoryAttempt(attempt: SavedAttempt) {
+    if (transitioningRef.current) {
+      return;
+    }
+    transitioningRef.current = true;
+    try {
+      setHistoryAttempt(attempt);
+      await spinRow(0, 1, { top: "history-attempt" });
+    } finally {
+      transitioningRef.current = false;
+    }
+  }
+
+  async function closeHistory() {
+    if (transitioningRef.current) {
+      return;
+    }
+    transitioningRef.current = true;
+    try {
+      if (screenRef.current.top === "history-attempt") {
+        await spinRow(0, -1, { top: "history-session" });
+        setHistoryAttempt(null);
+        return;
+      }
+      if (screenRef.current.top === "history-session") {
+        await spinRow(0, -1, { top: "profile" });
+        setHistorySession(null);
+      }
     } finally {
       transitioningRef.current = false;
     }
@@ -337,6 +401,46 @@ export function CubeBoard() {
               }}
             />
           ) : null;
+        }
+        if (slot === "history") {
+          return <HistoryList items={history.items} onOpen={(id) => void openHistorySession(id)} />;
+        }
+        if (slot === "history-back") {
+          return (
+            <button type="button" className="cube-copy cube-copy--hit" onClick={() => void closeHistory()}>
+              back
+            </button>
+          );
+        }
+        if (slot === "history-avg" && historySession) {
+          return (
+            <div className="history-summary">
+              <span className="history-summary__icon" aria-hidden="true">
+                {historySession.mode === "multi" ? <MultiIcon /> : <SoloIcon />}
+              </span>
+              <p className="history-summary__avg">{formatTime(historySession.averageMs)}</p>
+              <p className="history-summary__when">{formatRecordWhen(historySession.createdAt)}</p>
+            </div>
+          );
+        }
+        if (slot === "history-attempts" && historySession?.attempts) {
+          return (
+            <HistoryAttempts
+              attempts={historySession.attempts}
+              onOpen={(attempt) => void openHistoryAttempt(attempt)}
+            />
+          );
+        }
+        if (slot === "history-time" && historyAttempt) {
+          return (
+            <div className="history-summary">
+              <p className="history-summary__avg">{formatTime(historyAttempt.timeMs)}</p>
+              <p className="history-summary__when">{historyAttempt.index}/5</p>
+            </div>
+          );
+        }
+        if (slot === "history-detail" && historyAttempt) {
+          return <HistoryAttemptDetail scramble={historyAttempt.scramble} />;
         }
         if (slot === "settings") {
           return (

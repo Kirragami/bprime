@@ -1,7 +1,7 @@
 import type { SliceIndex, TurnAxis, TurnDir } from "./types";
 
 export type BoardScreen = {
-  top: "login" | "register" | "profile";
+  top: "login" | "register" | "profile" | "history-session" | "history-attempt";
   middle: "idle" | "friends";
   bottom: "empty" | "settings" | "menu";
   play: "none" | "solo" | "solo-settings";
@@ -82,7 +82,11 @@ export function overlayFor(screen: BoardScreen): Overlay {
       ? ["login", "tagline", "register-cta"]
       : screen.top === "register"
         ? ["register", "register-tagline", "login-cta"]
-        : ["profile", null, null];
+        : screen.top === "history-session"
+          ? ["history-back", "history-avg", "history-attempts"]
+          : screen.top === "history-attempt"
+            ? ["history-back", "history-time", "history-detail"]
+            : ["profile", null, "history"];
 
   const middle: RowSlots =
     screen.middle === "friends"

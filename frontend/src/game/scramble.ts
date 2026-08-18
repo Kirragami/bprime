@@ -69,8 +69,12 @@ function withSvgViewBox(svg: string) {
   });
 }
 
+export async function scrambleImage(moves: string) {
+  return withSvgViewBox(await callWorker("image", [moves, "333"]));
+}
+
 export async function generateScramble(): Promise<ScrambleState> {
   const moves = (await callWorker("scramble", ["333"])).trim();
-  const image = withSvgViewBox(await callWorker("image", [moves, "333"]));
+  const image = await scrambleImage(moves);
   return { moves, image };
 }

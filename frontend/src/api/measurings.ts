@@ -1,11 +1,17 @@
 import { request } from "./client";
 import type { Attempt } from "../game/ao5";
 
+export type SavedAttempt = {
+  index: number;
+  timeMs: number;
+  scramble: string;
+};
+
 export type SavedMeasuring = {
   id: number;
   mode: "solo" | "multi";
   averageMs: number;
-  attempts: { index: number; timeMs: number; scramble: string }[];
+  attempts?: SavedAttempt[];
   createdAt: string;
 };
 
@@ -13,6 +19,14 @@ export type BestTime = {
   timeMs: number;
   createdAt: string;
 };
+
+export function listMeasurings() {
+  return request<SavedMeasuring[]>("/api/measurings");
+}
+
+export function getMeasuring(id: number) {
+  return request<SavedMeasuring>(`/api/measurings/${id}`);
+}
 
 export function listBestTimes() {
   return request<BestTime[]>("/api/measurings/bests");

@@ -110,6 +110,33 @@ func (r *MeasuringRepository) Get(ctx context.Context, userID, id int64) (models
 	return item, rows.Err()
 }
 
+func (r *MeasuringRepository) List(ctx context.Context, userID int64, limit int) ([]models.Measuring, error) {
+	if limit < 1 {
+		limit = 50
+	}
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT id, mode, average_ms, created_at
+		FROM measurings
+		WHERE user_id = ?
+		ORDER BY created_at DESC, id DESC
+		LIMIT ?
+	`, userID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("list measurings: %w", err)
+	}
+	defer rows.Close()
+
+	items := make([]models.Measuring, 0)
+	for rows.Next() {
+		var item models.Measuring
+		if err := rows.Scan(&item.ID, &item.Mode, &item.AverageMs, &item.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan measuring: %w", err)
+		}
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
 func (r *MeasuringRepository) BestTimes(ctx context.Context, userID int64, limit int) ([]models.BestTime, error) {
 	if limit < 1 {
 		limit = 5

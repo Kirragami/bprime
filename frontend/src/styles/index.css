@@ -609,6 +609,218 @@ body {
   line-height: 1.15;
 }
 
+.history-list,
+.history-attempts,
+.history-detail,
+.history-summary {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: clamp(0.55rem, 7cqmin, 1.15rem);
+  color: var(--tile-ink);
+}
+
+.history-list__title {
+  margin: 0 0 0.35rem;
+  flex: 0 0 auto;
+  font-family: "Archivo Black", "Outfit", sans-serif;
+  font-size: clamp(0.78rem, 8cqmin, 1.65rem);
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+  text-transform: lowercase;
+}
+
+.history-list__empty {
+  margin: 0;
+  color: var(--tile-muted);
+  font-family: "Space Grotesk", "Outfit", sans-serif;
+  font-size: clamp(0.72rem, 7cqmin, 1.25rem);
+  font-weight: 600;
+}
+
+.history-list__items,
+.history-attempts {
+  margin: 0;
+  list-style: none;
+  overflow: auto;
+  overscroll-behavior: contain;
+  min-height: 0;
+  scrollbar-width: none;
+}
+
+.history-list__items::-webkit-scrollbar,
+.history-attempts::-webkit-scrollbar,
+.history-detail::-webkit-scrollbar {
+  display: none;
+}
+
+.history-list__items {
+  padding: 0;
+}
+
+.history-list__items {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.28rem;
+}
+
+.history-list__item,
+.history-attempts__item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0.12rem 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.history-list__item {
+  gap: 0.55rem;
+}
+
+.history-list__icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: clamp(1.05rem, 10cqmin, 1.7rem);
+  height: clamp(1.05rem, 10cqmin, 1.7rem);
+  color: var(--tile-muted);
+}
+
+.history-list__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.history-list__copy {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.08rem;
+}
+
+.history-list__avg,
+.history-attempts__item {
+  font-family: "Space Grotesk", "Outfit", sans-serif;
+  font-size: clamp(0.82rem, 9cqmin, 1.7rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.history-list__when,
+.history-summary__when {
+  color: var(--tile-muted);
+  font-family: "Space Grotesk", "Outfit", sans-serif;
+  font-size: clamp(0.62rem, 6.2cqmin, 1.05rem);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  text-transform: lowercase;
+}
+
+.history-attempts {
+  justify-content: center;
+  gap: 0.18rem;
+}
+
+.history-attempts__item {
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
+.history-attempts__item.is-dropped {
+  color: var(--tile-muted);
+  text-decoration: line-through;
+}
+
+.history-summary {
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.history-summary__icon {
+  display: grid;
+  place-items: center;
+  width: clamp(1.05rem, 10cqmin, 1.7rem);
+  height: clamp(1.05rem, 10cqmin, 1.7rem);
+  color: var(--tile-muted);
+}
+
+.history-summary__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.history-list__item:hover,
+.history-attempts__item:hover,
+.history-list__item:focus-visible,
+.history-attempts__item:focus-visible {
+  opacity: 0.72;
+  outline: none;
+}
+
+.history-summary__avg {
+  margin: 0;
+  font-family: "Space Grotesk", "Outfit", sans-serif;
+  font-size: clamp(1.5rem, 22cqmin, 4.8rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  line-height: 0.9;
+}
+
+.history-summary__when {
+  margin: 0;
+}
+
+.history-detail {
+  align-items: stretch;
+  justify-content: center;
+  gap: 0.55rem;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.history-detail__scramble {
+  margin: 0;
+  flex: 0 0 auto;
+  font-family: "Space Grotesk", "Outfit", sans-serif;
+  font-size: clamp(0.68rem, 6.8cqmin, 1.35rem);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  line-height: 1.3;
+}
+
+.history-detail__image {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.history-detail__image svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+}
+
 .solo-title {
   position: relative;
   z-index: 1;
