@@ -85,6 +85,8 @@ type CubeViewProps = {
   turn?: Turn | null;
   angle?: number;
   turning?: boolean;
+  turnMs?: number;
+  turnEase?: string;
   incomingSlots?: RowSlots;
   renderSlot?: RenderSlot;
 };
@@ -95,6 +97,8 @@ export function CubeView({
   turn = null,
   angle = 0,
   turning = false,
+  turnMs,
+  turnEase,
   incomingSlots,
   renderSlot,
 }: CubeViewProps) {
@@ -109,12 +113,16 @@ export function CubeView({
     <div
       className={`cube-scene${turning ? " is-turning" : ""}`}
       style={
-        turn
-          ? ({
-              perspectiveOrigin: slicePerspectiveOrigin(turn),
-              "--slice-index": turn.index,
-            } as CSSProperties)
-          : undefined
+        {
+          ...(turnMs ? { "--turn-ms": `${turnMs}ms` } : {}),
+          ...(turnEase ? { "--turn-ease": turnEase } : {}),
+          ...(turn
+            ? {
+                perspectiveOrigin: slicePerspectiveOrigin(turn),
+                "--slice-index": turn.index,
+              }
+            : {}),
+        } as CSSProperties
       }
     >
       <div className="cube-face-flat cube-face-grid">

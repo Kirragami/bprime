@@ -148,53 +148,79 @@ export function CubeBoard() {
   }, []);
 
   async function spinRow(row: SliceIndex, dir: TurnDir, patch: Partial<BoardScreen>) {
-    const next = { ...screenRef.current, ...patch };
-    if (sameRowScreen(screenRef.current, next, row)) {
-      screenRef.current = next;
-      overlayRef.current = overlayFor(next);
-      setScreen(next);
+    const planned = { ...screenRef.current, ...patch };
+    if (sameRowScreen(screenRef.current, planned, row)) {
+      screenRef.current = planned;
+      overlayRef.current = overlayFor(planned);
+      setScreen(planned);
       setOverlay(overlayRef.current);
       return;
     }
 
-    setIncomingSlots(rowSlots(overlayFor(next), row));
-    await turnRowRef.current(row, dir, () => {
-      screenRef.current = next;
-      overlayRef.current = overlayFor(next);
-      setScreen(next);
-      setOverlay(overlayRef.current);
-      setIncomingSlots(undefined);
-    });
+    await turnRowRef.current(
+      row,
+      dir,
+      () => {
+        const next = { ...screenRef.current, ...patch };
+        screenRef.current = next;
+        overlayRef.current = overlayFor(next);
+        setScreen(next);
+        setOverlay(overlayRef.current);
+        setIncomingSlots(undefined);
+      },
+      () => {
+        setIncomingSlots(rowSlots(overlayFor({ ...screenRef.current, ...patch }), row));
+      },
+    );
   }
 
   async function spinCol(col: SliceIndex, dir: TurnDir, nextOverlay: Overlay) {
-    setIncomingSlots(colSlots(nextOverlay, col));
-    await turnColRef.current(col, dir, () => {
-      overlayRef.current = withCol(overlayRef.current, col, colSlots(nextOverlay, col));
-      setOverlay(overlayRef.current);
-      setIncomingSlots(undefined);
-    });
-  }
-
-  async function spinOverlayRow(row: SliceIndex, dir: TurnDir, nextOverlay: Overlay) {
-    setIncomingSlots(rowSlots(nextOverlay, row));
-    await turnRowRef.current(row, dir, () => {
-      overlayRef.current = withRow(overlayRef.current, row, rowSlots(nextOverlay, row));
-      setOverlay(overlayRef.current);
-      setIncomingSlots(undefined);
-    });
+    await turnColRef.current(
+      col,
+      dir,
+      () => {
+        overlayRef.current = withCol(overlayRef.current, col, colSlots(nextOverlay, col));
+        setOverlay(overlayRef.current);
+        setIncomingSlots(undefined);
+      },
+      () => {
+        setIncomingSlots(colSlots(nextOverlay, col));
+      },
+    );
   }
 
   async function playOverlayTurns(turns: readonly OverlayTurn[], final: Overlay) {
-    for (let index = 0; index < turns.length; index += 1) {
-      const turn = turns[index];
-      const incoming = incomingOverlayForTurn(final, turns, index);
-      if (turn.axis === "col") {
-        await spinCol(turn.index, turn.dir, incoming);
-      } else {
-        await spinOverlayRow(turn.index, turn.dir, incoming);
-      }
-    }
+    await Promise.all(
+      turns.map((turn, index) => {
+        const incoming = incomingOverlayForTurn(final, turns, index);
+        if (turn.axis === "col") {
+          return turnColRef.current(
+            turn.index,
+            turn.dir,
+            () => {
+              overlayRef.current = withCol(overlayRef.current, turn.index, colSlots(incoming, turn.index));
+              setOverlay(overlayRef.current);
+              setIncomingSlots(undefined);
+            },
+            () => {
+              setIncomingSlots(colSlots(incoming, turn.index));
+            },
+          );
+        }
+        return turnRowRef.current(
+          turn.index,
+          turn.dir,
+          () => {
+            overlayRef.current = withRow(overlayRef.current, turn.index, rowSlots(incoming, turn.index));
+            setOverlay(overlayRef.current);
+            setIncomingSlots(undefined);
+          },
+          () => {
+            setIncomingSlots(rowSlots(incoming, turn.index));
+          },
+        );
+      }),
+    );
     overlayRef.current = final;
     setOverlay(final);
   }
@@ -400,9 +426,11 @@ export function CubeBoard() {
   async function revealSignedIn() {
     transitioningRef.current = true;
     try {
-      await spinRow(0, -1, { top: "profile" });
-      await spinRow(2, -1, { bottom: "settings" });
-      await spinRow(1, 1, { middle: "friends" });
+      await Promise.all([
+        spinRow(0, -1, { top: "profile" }),
+        spinRow(2, -1, { bottom: "settings" }),
+        spinRow(1, 1, { middle: "friends" }),
+      ]);
     } finally {
       transitioningRef.current = false;
     }
@@ -486,9 +514,11 @@ export function CubeBoard() {
   async function handleLogout() {
     transitioningRef.current = true;
     try {
-      await spinRow(0, 1, { top: "login" });
-      await spinRow(1, -1, { middle: "idle" });
-      await spinRow(2, 1, { bottom: "empty" });
+      await Promise.all([
+        spinRow(0, 1, { top: "login" }),
+        spinRow(1, -1, { middle: "idle" }),
+        spinRow(2, 1, { bottom: "empty" }),
+      ]);
       setHistoryAttempt(null);
       setHistorySession(null);
       setHistoryGame(null);
@@ -607,6 +637,8 @@ export function CubeBoard() {
       turn={cube.turn}
       angle={cube.angle}
       turning={cube.turning}
+      turnMs={cube.turnMs}
+      turnEase={cube.turnEase}
       incomingSlots={incomingSlots}
       renderSlot={(slot) => {
         if (slot === "login") {
