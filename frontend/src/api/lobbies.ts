@@ -11,6 +11,7 @@ export type LobbyMember = {
   user: User;
   state: "invited" | "joined" | "left";
   results: LobbyResult[];
+  startedAt?: number;
 };
 
 export type Lobby = {
@@ -21,6 +22,7 @@ export type Lobby = {
   scramble: string;
   members: LobbyMember[];
   createdAt: string;
+  nowMs?: number;
 };
 
 export function getCurrentLobby() {
@@ -62,4 +64,8 @@ export function submitLobbyTime(id: number, timeMs: number) {
     method: "POST",
     body: JSON.stringify({ timeMs }),
   });
+}
+
+export function startLobbyClock(id: number) {
+  return request<Lobby>(`/api/lobbies/${id}/clock`, { method: "POST" });
 }

@@ -7,6 +7,7 @@ import {
   joinLobby,
   leaveLobby,
   setLobbyScramble,
+  startLobbyClock,
   submitLobbyTime,
   type Lobby,
 } from "../api/lobbies";
@@ -105,5 +106,14 @@ export function useLobby(enabled: boolean) {
     return next;
   }, [lobby]);
 
-  return { lobby, refresh, create, invite, join, leave, postScramble, postTime };
+  const postStart = useCallback(async () => {
+    if (!lobby) {
+      return null;
+    }
+    const next = await startLobbyClock(lobby.id);
+    setLobby(next);
+    return next;
+  }, [lobby]);
+
+  return { lobby, refresh, create, invite, join, leave, postScramble, postTime, postStart };
 }

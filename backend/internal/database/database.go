@@ -138,6 +138,15 @@ CREATE TABLE IF NOT EXISTS measuring_lobbies (
 );
 CREATE INDEX IF NOT EXISTS measuring_lobbies_lobby_idx ON measuring_lobbies (lobby_id);
 
+CREATE TABLE IF NOT EXISTS lobby_clocks (
+	lobby_id INTEGER NOT NULL,
+	user_id INTEGER NOT NULL,
+	started_at INTEGER NOT NULL,
+	PRIMARY KEY (lobby_id, user_id),
+	FOREIGN KEY (lobby_id) REFERENCES lobbies(id) ON DELETE CASCADE,
+	FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 `
 
 	if _, err := db.Exec(schema); err != nil {

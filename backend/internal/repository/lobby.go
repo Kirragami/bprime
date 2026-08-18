@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"bprime/internal/models"
 )
@@ -34,7 +35,7 @@ func NewLobbyRepository(db *sql.DB, friends *FriendRepository) *LobbyRepository 
 }
 
 func (r *LobbyRepository) Create(ctx context.Context, hostID int64) (models.Lobby, error) {
-	if id, err := r.activeID(ctx, hostID, true); err != nil {
+	if id, err := r.occupyingID(ctx, hostID); err != nil {
 		return models.Lobby{}, err
 	} else if id > 0 {
 		return r.Get(ctx, id)
@@ -88,6 +89,7 @@ func (r *LobbyRepository) Get(ctx context.Context, id int64) (models.Lobby, erro
 		return models.Lobby{}, err
 	}
 	item.Members = members
+	item.NowMs = time.Now().UnixMilli()
 	return item, nil
 }
 
@@ -95,6 +97,12 @@ func (r *LobbyRepository) Current(ctx context.Context, userID int64) (models.Lob
 	id, err := r.activeID(ctx, userID, false)
 	if err != nil {
 		return models.Lobby{}, err
+	}
+	if id < 1 {
+		id, err = r.latestDoneID(ctx, userID)
+		if err != nil {
+			return models.Lobby{}, err
+		}
 	}
 	if id < 1 {
 		return models.Lobby{}, ErrLobbyNotFound
@@ -123,7 +131,7 @@ func (r *LobbyRepository) Invite(ctx context.Context, lobbyID, hostID, targetID 
 	if !ok {
 		return models.Lobby{}, ErrNotFriends
 	}
-	if other, err := r.activeID(ctx, targetID, true); err != nil {
+	if other, err := r.occupyingID(ctx, targetID); err != nil {
 		return models.Lobby{}, err
 	} else if other > 0 && other != lobbyID {
 		return models.Lobby{}, ErrLobbyBusy
@@ -155,7 +163,7 @@ func (r *LobbyRepository) Join(ctx context.Context, lobbyID, userID int64) (mode
 	if !ok || member.State != "invited" {
 		return models.Lobby{}, ErrLobbyForbidden
 	}
-	if other, err := r.activeJoinedID(ctx, userID); err != nil {
+	if other, err := r.occupyingID(ctx, userID); err != nil {
 		return models.Lobby{}, err
 	} else if other > 0 && other != lobbyID {
 		return models.Lobby{}, ErrLobbyBusy
@@ -179,6 +187,11 @@ func (r *LobbyRepository) Leave(ctx context.Context, lobbyID, userID int64) (mod
 		if _, err := r.db.ExecContext(ctx, `UPDATE lobbies SET status = 'done' WHERE id = ?`, lobbyID); err != nil {
 			return models.Lobby{}, fmt.Errorf("end lobby: %w", err)
 		}
+		if err := r.clearClocks(ctx, lobbyID, 0); err != nil {
+			return models.Lobby{}, err
+		}
+	} else if err := r.clearClocks(ctx, lobbyID, userID); err != nil {
+		return models.Lobby{}, err
 	}
 	if item.Status == "done" || item.HostID == userID {
 		if _, err := r.db.ExecContext(ctx, `
@@ -245,6 +258,9 @@ func (r *LobbyRepository) SetScramble(ctx context.Context, lobbyID, hostID int64
 	default:
 		return models.Lobby{}, ErrLobbyNotReady
 	}
+	if err := r.clearClocks(ctx, lobbyID, 0); err != nil {
+		return models.Lobby{}, err
+	}
 	return r.Get(ctx, lobbyID)
 }
 
@@ -278,8 +294,38 @@ func (r *LobbyRepository) SubmitTime(ctx context.Context, lobbyID, userID, timeM
 		}
 		return models.Lobby{}, fmt.Errorf("insert result: %w", err)
 	}
+	if err := r.clearClocks(ctx, lobbyID, userID); err != nil {
+		return models.Lobby{}, err
+	}
 	if err := r.advanceIfReady(ctx, lobbyID); err != nil {
 		return models.Lobby{}, err
+	}
+	return r.Get(ctx, lobbyID)
+}
+
+func (r *LobbyRepository) StartClock(ctx context.Context, lobbyID, userID int64) (models.Lobby, error) {
+	item, err := r.Get(ctx, lobbyID)
+	if err != nil {
+		return models.Lobby{}, err
+	}
+	if item.Status != "attempt" || item.Scramble == "" {
+		return models.Lobby{}, ErrLobbyNotReady
+	}
+	member, ok := memberOf(item, userID)
+	if !ok || member.State != "joined" {
+		return models.Lobby{}, ErrLobbyForbidden
+	}
+	for _, result := range member.Results {
+		if result.Index == item.AttemptIndex {
+			return models.Lobby{}, ErrLobbyDuplicate
+		}
+	}
+	if _, err := r.db.ExecContext(ctx, `
+		INSERT INTO lobby_clocks (lobby_id, user_id, started_at)
+		VALUES (?, ?, ?)
+		ON CONFLICT(lobby_id, user_id) DO NOTHING
+	`, lobbyID, userID, time.Now().UnixMilli()); err != nil {
+		return models.Lobby{}, fmt.Errorf("start clock: %w", err)
 	}
 	return r.Get(ctx, lobbyID)
 }
@@ -364,6 +410,14 @@ func (r *LobbyRepository) activeID(ctx context.Context, userID int64, joinedOnly
 		return 0, fmt.Errorf("active lobby: %w", err)
 	}
 	return id, nil
+}
+
+func (r *LobbyRepository) occupyingID(ctx context.Context, userID int64) (int64, error) {
+	id, err := r.activeID(ctx, userID, true)
+	if err != nil || id > 0 {
+		return id, err
+	}
+	return r.latestDoneID(ctx, userID)
 }
 
 func (r *LobbyRepository) activeJoinedID(ctx context.Context, userID int64) (int64, error) {
@@ -457,7 +511,42 @@ func (r *LobbyRepository) listMembers(ctx context.Context, lobbyID int64) ([]mod
 			members[i].Results = append(members[i].Results, result)
 		}
 	}
-	return members, resultRows.Err()
+	if err := resultRows.Err(); err != nil {
+		return nil, err
+	}
+
+	clockRows, err := r.db.QueryContext(ctx, `
+		SELECT user_id, started_at
+		FROM lobby_clocks
+		WHERE lobby_id = ?
+	`, lobbyID)
+	if err != nil {
+		return nil, fmt.Errorf("list clocks: %w", err)
+	}
+	defer clockRows.Close()
+	for clockRows.Next() {
+		var userID, startedAt int64
+		if err := clockRows.Scan(&userID, &startedAt); err != nil {
+			return nil, fmt.Errorf("scan clock: %w", err)
+		}
+		if i, ok := index[userID]; ok {
+			members[i].StartedAt = startedAt
+		}
+	}
+	return members, clockRows.Err()
+}
+
+func (r *LobbyRepository) clearClocks(ctx context.Context, lobbyID, userID int64) error {
+	var err error
+	if userID > 0 {
+		_, err = r.db.ExecContext(ctx, `DELETE FROM lobby_clocks WHERE lobby_id = ? AND user_id = ?`, lobbyID, userID)
+	} else {
+		_, err = r.db.ExecContext(ctx, `DELETE FROM lobby_clocks WHERE lobby_id = ?`, lobbyID)
+	}
+	if err != nil {
+		return fmt.Errorf("clear clocks: %w", err)
+	}
+	return nil
 }
 
 func joinedCount(item models.Lobby) int {

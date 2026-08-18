@@ -9,6 +9,7 @@ export function useMultiTimer(
   scramble: string,
   lookSec: number,
   onStop: (timeMs: number) => void,
+  onStart?: () => void,
 ) {
   const [phase, setPhase] = useState<TimerPhase>("idle");
   const [elapsed, setElapsed] = useState(0);
@@ -23,11 +24,13 @@ export function useMultiTimer(
   const phaseRef = useRef<TimerPhase>("idle");
   const spaceDown = useRef(false);
   const onStopRef = useRef(onStop);
+  const onStartRef = useRef(onStart);
   const scrambleRef = useRef(scramble);
 
   phaseRef.current = phase;
   inspectMsRef.current = inspectMs;
   onStopRef.current = onStop;
+  onStartRef.current = onStart;
   scrambleRef.current = scramble;
 
   const reset = useCallback(() => {
@@ -133,6 +136,7 @@ export function useMultiTimer(
         startedAt.current = performance.now();
         setElapsed(0);
         setPhase("running");
+        onStartRef.current?.();
       }
     };
 

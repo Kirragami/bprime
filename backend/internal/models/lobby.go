@@ -7,9 +7,10 @@ type LobbyResult struct {
 }
 
 type LobbyMember struct {
-	User    User          `json:"user"`
-	State   string        `json:"state"`
-	Results []LobbyResult `json:"results"`
+	User      User          `json:"user"`
+	State     string        `json:"state"`
+	Results   []LobbyResult `json:"results"`
+	StartedAt int64         `json:"startedAt,omitempty"`
 }
 
 type Lobby struct {
@@ -20,4 +21,5 @@ type Lobby struct {
 	Scramble     string        `json:"scramble"`
 	Members      []LobbyMember `json:"members"`
 	CreatedAt    string        `json:"createdAt"`
+	NowMs        int64         `json:"nowMs,omitempty"`
 }

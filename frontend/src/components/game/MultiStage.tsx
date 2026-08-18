@@ -1,4 +1,7 @@
+import type { Lobby } from "../../api/lobbies";
+import { lobbyWinner } from "../../game/lobby";
 import type { TimerPhase } from "../../hooks/useSoloSession";
+import { MultiWinner } from "./MultiWinner";
 import { SoloTimer } from "./SoloTimer";
 
 type MultiStageProps = {
@@ -11,6 +14,8 @@ type MultiStageProps = {
   inspectLeft: number;
   averageMs: number | null;
   hideTimer: boolean;
+  lobby?: Lobby | null;
+  selfId?: number;
   onStart: () => void;
 };
 
@@ -24,6 +29,8 @@ export function MultiStage({
   inspectLeft,
   averageMs,
   hideTimer,
+  lobby = null,
+  selfId,
   onStart,
 }: MultiStageProps) {
   if (status === "open" || status === "hold") {
@@ -41,6 +48,10 @@ export function MultiStage({
   }
 
   if (status === "done") {
+    const winner = lobbyWinner(lobby);
+    if (winner) {
+      return <MultiWinner standing={winner} selfId={selfId} />;
+    }
     return (
       <SoloTimer
         phase="done"

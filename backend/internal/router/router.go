@@ -35,6 +35,7 @@ func New(cfg config.Config, h *handler.Handler) http.Handler {
 	mux.HandleFunc("POST /api/lobbies/{id}/leave", h.LeaveLobby)
 	mux.HandleFunc("POST /api/lobbies/{id}/scramble", h.SetLobbyScramble)
 	mux.HandleFunc("POST /api/lobbies/{id}/time", h.SubmitLobbyTime)
+	mux.HandleFunc("POST /api/lobbies/{id}/clock", h.StartLobbyClock)
 	mux.HandleFunc("POST /api/measurings", h.CreateMeasuring)
 	mux.HandleFunc("GET /api/measurings", h.ListMeasurings)
 	mux.HandleFunc("GET /api/measurings/bests", h.ListBestTimes)

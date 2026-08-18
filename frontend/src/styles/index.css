@@ -1234,6 +1234,7 @@ button.cube-copy--hit:focus-visible {
   font-family: "Space Grotesk", "Outfit", sans-serif;
   font-size: clamp(0.68rem, 6.8cqmin, 1.15rem);
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .multi-list__items {
@@ -1264,6 +1265,222 @@ button.cube-copy--hit:focus-visible {
   color: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+.multi-rank {
+  animation: multi-rank-in 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.multi-rank:nth-child(1) {
+  animation-delay: 40ms;
+}
+
+.multi-rank:nth-child(2) {
+  animation-delay: 120ms;
+}
+
+.multi-rank:nth-child(3) {
+  animation-delay: 200ms;
+}
+
+.multi-rank:nth-child(4) {
+  animation-delay: 280ms;
+}
+
+.multi-rank:nth-child(5) {
+  animation-delay: 360ms;
+}
+
+.multi-rank__place {
+  flex: 0 0 auto;
+  width: 1.1em;
+  color: var(--tile-muted);
+  font-family: "Archivo Black", "Outfit", sans-serif;
+  font-size: clamp(0.78rem, 8cqmin, 1.35rem);
+  line-height: 1;
+}
+
+.multi-rank.is-winner {
+  color: var(--tile-ink);
+}
+
+.multi-rank.is-winner .multi-rank__place,
+.multi-rank.is-winner .multi-list__state,
+.multi-rank.is-winner .friends-list__name {
+  color: var(--tile-ink);
+}
+
+.multi-rank.is-winner .friend-avatar {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--tile-ink) 55%, transparent),
+    0 0 12px color-mix(in srgb, var(--tile-ink) 35%, transparent);
+  animation: multi-winner-glow 1.8s ease-in-out infinite;
+}
+
+.multi-winner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  overflow: hidden;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: clamp(0.45rem, 6cqmin, 1.1rem);
+  color: var(--tile-ink);
+  text-align: center;
+}
+
+.multi-winner__burst {
+  position: absolute;
+  inset: 8%;
+  pointer-events: none;
+}
+
+.multi-winner__burst span {
+  position: absolute;
+  inset: 0;
+  border: 2px solid color-mix(in srgb, var(--tile-ink) 28%, transparent);
+  border-radius: 50%;
+  animation: multi-winner-ring 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.multi-winner__burst span:nth-child(2) {
+  animation-delay: 0.45s;
+}
+
+.multi-winner__burst span:nth-child(3) {
+  animation-delay: 0.9s;
+}
+
+.multi-winner__avatar {
+  position: relative;
+  z-index: 1;
+  animation: multi-winner-pop 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.multi-winner__avatar .friend-avatar {
+  width: clamp(3.4rem, 28cqmin, 6.4rem);
+  height: clamp(3.4rem, 28cqmin, 6.4rem);
+  font-size: clamp(1.3rem, 10cqmin, 2.4rem);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--tile-ink) 42%, transparent),
+    0 10px 24px rgba(0, 0, 0, 0.22);
+  animation: multi-winner-glow 1.8s ease-in-out infinite;
+}
+
+.multi-winner__crown,
+.multi-winner__name,
+.multi-winner__time {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+}
+
+.multi-winner__crown {
+  margin-top: 0.45rem;
+  font-family: "Archivo Black", "Outfit", sans-serif;
+  font-size: clamp(0.78rem, 8cqmin, 1.55rem);
+  letter-spacing: 0.12em;
+  text-transform: lowercase;
+  animation: multi-winner-shine 1.6s ease-in-out infinite;
+}
+
+.multi-winner__name {
+  max-width: 100%;
+  overflow: hidden;
+  font-family: "Space Grotesk", "Outfit", sans-serif;
+  font-size: clamp(0.92rem, 10cqmin, 1.9rem);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  animation: multi-rank-in 560ms cubic-bezier(0.22, 1, 0.36, 1) 80ms both;
+}
+
+.multi-winner__time {
+  font-family: "Space Grotesk", "Outfit", sans-serif;
+  font-size: clamp(1.35rem, 18cqmin, 3.6rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+  animation: multi-rank-in 620ms cubic-bezier(0.22, 1, 0.36, 1) 140ms both;
+}
+
+.multi-winner.is-self .multi-winner__crown {
+  letter-spacing: 0.08em;
+}
+
+@keyframes multi-rank-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.45rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes multi-winner-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.62);
+  }
+  70% {
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes multi-winner-glow {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.18);
+  }
+}
+
+@keyframes multi-winner-ring {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.72);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.18);
+  }
+}
+
+@keyframes multi-winner-shine {
+  0%,
+  100% {
+    opacity: 0.72;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .multi-rank,
+  .multi-winner__avatar,
+  .multi-winner__avatar .friend-avatar,
+  .multi-winner__crown,
+  .multi-winner__name,
+  .multi-winner__time,
+  .multi-winner__burst span,
+  .multi-rank.is-winner .friend-avatar {
+    animation: none;
+  }
 }
 
 .friend-avatar {

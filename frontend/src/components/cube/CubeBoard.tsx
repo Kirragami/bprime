@@ -109,9 +109,17 @@ export function CubeBoard() {
   const multiWaiting = hasAttempt(me, playLobby?.attemptIndex ?? 0);
   const multiLive =
     Boolean(lobby.lobby) && lobby.lobby?.status === "attempt" && !multiWaiting;
-  const multiTimer = useMultiTimer(multiLive, lobby.lobby?.scramble ?? "", soloPrefs.lookSec, (timeMs) => {
-    void lobby.postTime(timeMs);
-  });
+  const multiTimer = useMultiTimer(
+    multiLive,
+    lobby.lobby?.scramble ?? "",
+    soloPrefs.lookSec,
+    (timeMs) => {
+      void lobby.postTime(timeMs);
+    },
+    () => {
+      void lobby.postStart();
+    },
+  );
   const turnColRef = useRef(cube.turnCol);
   const turnRowRef = useRef(cube.turnRow);
   const isBusyRef = useRef(cube.isBusy);
@@ -456,6 +464,8 @@ export function CubeBoard() {
     if (!isMultiPlay() || !lobby.lobby || lobby.lobby.status !== "done") {
       return;
     }
+    void history.refresh();
+    void bests.refresh();
     if (memberAttempts(lobbyMember(lobby.lobby, auth.user?.id)).length < 5) {
       void leaveMulti(true);
     }
@@ -812,7 +822,15 @@ export function CubeBoard() {
           );
         }
         if (slot === "multi-room" && playLobby) {
-          return <MultiRoom lobby={playLobby} selfId={auth.user?.id} hideOthers={soloPrefs.hideOthers} />;
+          return (
+            <MultiRoom
+              lobby={playLobby}
+              selfId={auth.user?.id}
+              hideOthers={soloPrefs.hideOthers}
+              hideSelf={soloPrefs.hideTimer}
+              selfElapsed={multiTimer.phase === "running" ? multiTimer.elapsed : null}
+            />
+          );
         }
         if (slot === "multi-stage") {
           return (
@@ -826,6 +844,8 @@ export function CubeBoard() {
               inspectLeft={multiTimer.inspectLeft}
               averageMs={multiAttempts.length === 5 ? averageOfFive(multiAttempts.map((item) => item.timeMs)) : null}
               hideTimer={soloPrefs.hideTimer}
+              lobby={playLobby}
+              selfId={auth.user?.id}
               onStart={() => void startMultiAttempt()}
             />
           );

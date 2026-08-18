@@ -130,6 +130,26 @@ func (h *Handler) SubmitLobbyTime(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *Handler) StartLobbyClock(w http.ResponseWriter, r *http.Request) {
+	user, ok := h.userFromRequest(r)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "not signed in")
+		return
+	}
+	id, ok := lobbyID(r)
+	if !ok {
+		writeError(w, http.StatusBadRequest, "invalid lobby")
+		return
+	}
+	item, err := h.lobbies.StartClock(r.Context(), id, user.ID)
+	if err != nil {
+		writeLobbyError(w, err)
+		return
+	}
+	h.notifyLobby(item)
+	writeJSON(w, http.StatusOK, item)
+}
+
 var errInvalidJSON = errors.New("invalid json")
 
 func (h *Handler) mutateLobby(w http.ResponseWriter, r *http.Request, fn func(userID, id int64) (models.Lobby, error)) {
