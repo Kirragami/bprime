@@ -342,7 +342,7 @@ export function CubeBoard() {
           return (
             <button
               type="button"
-              className="cube-copy"
+              className="cube-copy cube-copy--hit"
               onClick={() => {
                 if (screenRef.current.play === "solo") {
                   void openSoloSettings();
@@ -357,7 +357,7 @@ export function CubeBoard() {
         }
         if (slot === "solo-back") {
           return (
-            <button type="button" className="cube-copy" onClick={() => void closeSoloSettings()}>
+            <button type="button" className="cube-copy cube-copy--hit" onClick={() => void closeSoloSettings()}>
               back
             </button>
           );
@@ -372,7 +372,7 @@ export function CubeBoard() {
           return (
             <button
               type="button"
-              className="cube-copy"
+              className="cube-copy cube-copy--hit"
               onClick={() => void spinRow(2, 1, { bottom: "settings" })}
             >
               back
@@ -383,7 +383,7 @@ export function CubeBoard() {
           return (
             <button
               type="button"
-              className="cube-copy"
+              className="cube-copy cube-copy--hit"
               onClick={() => void handleLogout()}
             >
               logout
