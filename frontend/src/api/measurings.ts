@@ -44,6 +44,14 @@ export function listLeaders() {
   return request<Leader[]>("/api/leaders");
 }
 
+export function listFriendMeasurings(userId: number) {
+  return request<SavedMeasuring[]>(`/api/friends/${userId}/measurings`);
+}
+
+export function getFriendMeasuring(userId: number, id: number) {
+  return request<SavedMeasuring>(`/api/friends/${userId}/measurings/${id}`);
+}
+
 export function saveMeasuring(mode: "solo" | "multi", attempts: Attempt[]) {
   return request<SavedMeasuring>("/api/measurings", {
     method: "POST",

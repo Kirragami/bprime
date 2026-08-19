@@ -15,10 +15,24 @@ export function MultiInvite({ friends, onInvite }: MultiInviteProps) {
       ) : (
         <ul className="multi-list__items">
           {friends.map((friend) => (
-            <li key={friend.id}>
-              <button type="button" className="multi-list__row" onClick={() => onInvite(friend.id)}>
-                <FriendAvatar user={friend} />
-                <span className="friends-list__name">{friend.username}</span>
+            <li key={friend.id} className="friends-list__person">
+              <FriendAvatar user={friend} />
+              <span className="friends-list__name">{friend.username}</span>
+              <button
+                type="button"
+                className="multi-list__invite"
+                aria-label={`invite ${friend.username}`}
+                onClick={() => onInvite(friend.id)}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M12 5v14M5 12h14"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                  />
+                </svg>
               </button>
             </li>
           ))}

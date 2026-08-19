@@ -111,3 +111,53 @@ func (h *Handler) ListBestTimes(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, items)
 }
+
+func (h *Handler) ListFriendMeasurings(w http.ResponseWriter, r *http.Request) {
+	user, ok := h.userFromRequest(r)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "not signed in")
+		return
+	}
+	friendID, ok := h.authorizedFriend(w, r, user.ID)
+	if !ok {
+		return
+	}
+
+	items, err := h.measurings.List(r.Context(), friendID, 50)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load history")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, items)
+}
+
+func (h *Handler) GetFriendMeasuring(w http.ResponseWriter, r *http.Request) {
+	user, ok := h.userFromRequest(r)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "not signed in")
+		return
+	}
+	friendID, ok := h.authorizedFriend(w, r, user.ID)
+	if !ok {
+		return
+	}
+
+	id, err := strconv.ParseInt(r.PathValue("mid"), 10, 64)
+	if err != nil || id < 1 {
+		writeError(w, http.StatusBadRequest, "invalid measuring")
+		return
+	}
+
+	item, err := h.measurings.Get(r.Context(), friendID, id)
+	if errors.Is(err, repository.ErrInvalidMeasuring) {
+		writeError(w, http.StatusNotFound, "measuring not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load measuring")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, item)
+}

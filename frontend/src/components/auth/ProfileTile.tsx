@@ -252,7 +252,11 @@ export function ProfileTile({ user, bestMs, onUpload, errorMessage }: ProfileTil
       />
       <div className="profile-tile__copy">
         <p className="cube-copy">{user.username}</p>
-        {bestMs != null ? <p className="profile-tile__best">{formatTime(bestMs)}</p> : null}
+        {bestMs != null ? (
+          <p className="profile-tile__best">
+            <span className="profile-tile__best-time">{formatTime(bestMs)}</span>
+          </p>
+        ) : null}
       </div>
       {draft ? (
         <div className="profile-tile__actions">

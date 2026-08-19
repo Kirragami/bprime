@@ -132,3 +132,26 @@ func (h *Handler) respondToFriend(w http.ResponseWriter, r *http.Request, accept
 	h.events.Notify(row.RequesterID, row.AddresseeID)
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
+
+func (h *Handler) authorizedFriend(w http.ResponseWriter, r *http.Request, userID int64) (int64, bool) {
+	friendID, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil || friendID < 1 {
+		writeError(w, http.StatusBadRequest, "invalid friend")
+		return 0, false
+	}
+	if friendID == userID {
+		writeError(w, http.StatusBadRequest, "invalid friend")
+		return 0, false
+	}
+
+	ok, err := h.friends.AreFriends(r.Context(), userID, friendID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load friend")
+		return 0, false
+	}
+	if !ok {
+		writeError(w, http.StatusNotFound, "friend not found")
+		return 0, false
+	}
+	return friendID, true
+}

@@ -78,7 +78,7 @@ func (h *Handler) GetLobby(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to load lobby")
 		return
 	}
-	if !canSeeLobby(item, user.ID) {
+	if !h.canViewLobby(r, item, user.ID) {
 		writeError(w, http.StatusNotFound, "lobby not found")
 		return
 	}
@@ -222,6 +222,24 @@ func canSeeLobby(item models.Lobby, userID int64) bool {
 	}
 	for _, member := range item.Members {
 		if member.User.ID == userID {
+			return true
+		}
+	}
+	return false
+}
+
+func (h *Handler) canViewLobby(r *http.Request, item models.Lobby, userID int64) bool {
+	if canSeeLobby(item, userID) {
+		return true
+	}
+
+	seen := map[int64]struct{}{item.HostID: {}}
+	for _, member := range item.Members {
+		seen[member.User.ID] = struct{}{}
+	}
+	for id := range seen {
+		ok, err := h.friends.AreFriends(r.Context(), userID, id)
+		if err == nil && ok {
 			return true
 		}
 	}

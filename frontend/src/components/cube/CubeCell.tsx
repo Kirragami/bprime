@@ -27,7 +27,8 @@ export function CubeCell({ cell, slot = null, active = false, renderSlot }: Cube
     slot === "multi-stage" ||
     slot === "multi-members" ||
     slot === "multi-invite" ||
-    slot === "multi-room";
+    slot === "multi-room" ||
+    slot === "friends";
   const className = [
     "cube-board__cell",
     content && isCentered ? "cube-board__cell--form" : "",

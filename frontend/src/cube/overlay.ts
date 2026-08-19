@@ -6,6 +6,7 @@ export type BoardScreen = {
   bottom: "empty" | "settings" | "menu";
   play: "none" | "solo" | "solo-settings" | "multi" | "multi-settings";
   multi: "lobby" | "play";
+  friend?: boolean;
 };
 
 export type Overlay = [
@@ -109,7 +110,7 @@ export function overlayFor(screen: BoardScreen): Overlay {
 
   const bottom: RowSlots =
     screen.bottom === "settings"
-      ? [null, null, "settings"]
+      ? [screen.friend ? "friend-back" : null, null, "settings"]
       : screen.bottom === "menu"
         ? ["settings-back", null, "logout"]
         : screen.top === "login" || screen.top === "register"

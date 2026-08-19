@@ -24,6 +24,8 @@ func New(cfg config.Config, h *handler.Handler) http.Handler {
 	mux.HandleFunc("GET /api/avatars/{name}", h.ServeAvatar)
 	mux.HandleFunc("GET /api/friends", h.ListFriends)
 	mux.HandleFunc("POST /api/friends", h.AddFriend)
+	mux.HandleFunc("GET /api/friends/{id}/measurings/{mid}", h.GetFriendMeasuring)
+	mux.HandleFunc("GET /api/friends/{id}/measurings", h.ListFriendMeasurings)
 	mux.HandleFunc("POST /api/friends/{id}/accept", h.AcceptFriend)
 	mux.HandleFunc("POST /api/friends/{id}/reject", h.RejectFriend)
 	mux.HandleFunc("GET /api/events", h.Events)

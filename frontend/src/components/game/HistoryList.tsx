@@ -5,13 +5,15 @@ import { MultiIcon, SoloIcon } from "./ModeIcon";
 
 type HistoryListProps = {
   items: SavedMeasuring[];
+  title?: string;
+  compact?: boolean;
   onOpen: (id: number) => void;
 };
 
-export function HistoryList({ items, onOpen }: HistoryListProps) {
+export function HistoryList({ items, title = "history", compact = false, onOpen }: HistoryListProps) {
   return (
-    <div className="history-list">
-      <p className="history-list__title">history</p>
+    <div className={`history-list${compact ? " history-list--nested" : ""}`}>
+      <p className="history-list__title">{title}</p>
       {items.length === 0 ? (
         <p className="history-list__empty">no sessions yet</p>
       ) : (

@@ -47,7 +47,8 @@ function OverlayCell({
     slot === "multi-stage" ||
     slot === "multi-members" ||
     slot === "multi-invite" ||
-    slot === "multi-room";
+    slot === "multi-room" ||
+    slot === "friends";
   const isProfile = slot === "profile";
   const isSoloDock = slot === "solo-history" || slot === "solo-actions" || slot === "multi-actions";
   const className = [

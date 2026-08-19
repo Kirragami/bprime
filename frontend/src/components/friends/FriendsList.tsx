@@ -9,6 +9,8 @@ type FriendsListProps = {
   outgoing: FriendRequest[];
   actingId?: number | null;
   inviteName?: string | null;
+  selectedId?: number | null;
+  onOpen?: (user: User) => void;
   onAccept: (id: number) => void;
   onReject: (id: number) => void;
   onJoinInvite?: () => void;
@@ -17,14 +19,18 @@ type FriendsListProps = {
 function Person({
   user,
   pendingLabel,
+  open,
+  selected,
   children,
 }: {
   user: User;
   pendingLabel?: string;
+  open?: () => void;
+  selected?: boolean;
   children?: ReactNode;
 }) {
-  return (
-    <li className="friends-list__person">
+  const body = (
+    <>
       <FriendAvatar user={user} />
       <span className="friends-list__name">
         {user.username}
@@ -32,8 +38,24 @@ function Person({
       </span>
       {user.bestMs ? <span className="friends-list__best">{formatTime(user.bestMs)}</span> : null}
       {children}
-    </li>
+    </>
   );
+
+  if (open) {
+    return (
+      <li>
+        <button
+          type="button"
+          className={`friends-list__person friends-list__open${selected ? " is-selected" : ""}`}
+          onClick={open}
+        >
+          {body}
+        </button>
+      </li>
+    );
+  }
+
+  return <li className="friends-list__person">{body}</li>;
 }
 
 export function FriendsList({
@@ -42,6 +64,8 @@ export function FriendsList({
   outgoing,
   actingId = null,
   inviteName = null,
+  selectedId = null,
+  onOpen,
   onAccept,
   onReject,
   onJoinInvite,
@@ -88,7 +112,12 @@ export function FriendsList({
       {friends.length > 0 ? (
         <ul className="friends-list__items">
           {friends.map((friend) => (
-            <Person key={friend.id} user={friend} />
+            <Person
+              key={friend.id}
+              user={friend}
+              selected={selectedId === friend.id}
+              open={onOpen ? () => onOpen(friend) : undefined}
+            />
           ))}
         </ul>
       ) : null}

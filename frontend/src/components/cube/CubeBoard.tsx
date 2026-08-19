@@ -20,11 +20,11 @@ import {
   type TurnDir,
 } from "../../cube";
 import { AddFriendForm } from "../friends/AddFriendForm";
-import { FriendsList } from "../friends/FriendsList";
+import { FriendDeck } from "../friends/FriendDeck";
 import { useAuth } from "../../hooks/useAuth";
 import { useFriends } from "../../hooks/useFriends";
 import { getLobby, type Lobby, type LobbyMember } from "../../api/lobbies";
-import { saveMeasuring, type SavedAttempt, type SavedMeasuring } from "../../api/measurings";
+import { getFriendMeasuring, listFriendMeasurings, saveMeasuring, type SavedAttempt, type SavedMeasuring } from "../../api/measurings";
 import { BestTimes } from "../game/BestTimes";
 import { Leaders } from "../game/Leaders";
 import { GameModes } from "../game/GameModes";
@@ -58,6 +58,7 @@ import { useLobby } from "../../hooks/useLobby";
 import { useMultiTimer } from "../../hooks/useMultiTimer";
 import { useSoloSession } from "../../hooks/useSoloSession";
 import { useSoloSettings } from "../../hooks/useSoloSettings";
+import type { User } from "../../types";
 import { CubeView } from "./CubeView";
 
 const AUTO_COL_MS = 4000;
@@ -97,6 +98,8 @@ export function CubeBoard() {
   const [historySession, setHistorySession] = useState<SavedMeasuring | null>(null);
   const [historyAttempt, setHistoryAttempt] = useState<SavedAttempt | null>(null);
   const [historyGame, setHistoryGame] = useState<Lobby | null>(null);
+  const [historyFriend, setHistoryFriend] = useState<User | null>(null);
+  const [friendHistoryItems, setFriendHistoryItems] = useState<SavedMeasuring[]>([]);
   const [heldLobby, setHeldLobby] = useState<Lobby | null>(null);
   const homeHistoryItems = useMemo(
     () => history.items.filter((item) => (item.attemptCount ?? 1) > 0),
@@ -527,19 +530,49 @@ export function CubeBoard() {
       setHistoryAttempt(null);
       setHistorySession(null);
       setHistoryGame(null);
+      setHistoryFriend(null);
+      setFriendHistoryItems([]);
       await auth.signOut();
     } finally {
       transitioningRef.current = false;
     }
   }
 
-  async function openHistorySession(id: number) {
+  async function openFriendHistory(friend: User) {
+    if (isBusyPlay()) {
+      return;
+    }
+    try {
+      setFriendHistoryItems(await listFriendMeasurings(friend.id));
+      setHistoryFriend(friend);
+      const next = { ...screenRef.current, friend: true };
+      screenRef.current = next;
+      setScreen(next);
+      setOverlay(overlayFor(next));
+    } catch {
+      setHistoryFriend(null);
+      setFriendHistoryItems([]);
+    }
+  }
+
+  function closeFriendHistory() {
+    setHistoryFriend(null);
+    setFriendHistoryItems([]);
+    const next = { ...screenRef.current, friend: false };
+    screenRef.current = next;
+    setScreen(next);
+    setOverlay(overlayFor(next));
+  }
+
+  async function openHistorySession(id: number, owner?: User | null) {
     if (transitioningRef.current || isSoloPlay()) {
       return;
     }
     transitioningRef.current = true;
     try {
-      const item = await history.load(id);
+      const item = owner
+        ? await getFriendMeasuring(owner.id, id)
+        : await history.load(id);
       setHistoryAttempt(null);
       if (item.lobbyId) {
         try {
@@ -785,6 +818,13 @@ export function CubeBoard() {
         if (slot === "solo-clock") {
           return <SoloClockSetting hideTimer={soloPrefs.hideTimer} onToggle={soloPrefs.toggleTimer} />;
         }
+        if (slot === "friend-back") {
+          return (
+            <button type="button" className="cube-copy cube-copy--hit" onClick={closeFriendHistory}>
+              back
+            </button>
+          );
+        }
         if (slot === "settings-back") {
           return (
             <button
@@ -810,12 +850,16 @@ export function CubeBoard() {
         if (slot === "friends") {
           const invite = lobbyInvite(lobby.lobby, auth.user?.id);
           return (
-            <FriendsList
+            <FriendDeck
               friends={friends.friends}
               incoming={friends.incoming}
               outgoing={friends.outgoing}
               actingId={friends.actingId}
               inviteName={invite?.host?.username ?? null}
+              friend={historyFriend}
+              historyItems={friendHistoryItems}
+              onOpenFriend={(friend) => void openFriendHistory(friend)}
+              onOpenSession={(id) => void openHistorySession(id, historyFriend)}
               onAccept={(id) => void friends.acceptRequest(id)}
               onReject={(id) => void friends.rejectRequest(id)}
               onJoinInvite={() => void enterMulti(invite?.lobby)}
