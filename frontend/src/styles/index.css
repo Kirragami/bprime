@@ -640,6 +640,275 @@ body {
   line-height: 1.15;
 }
 
+.leaders {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: clamp(0.1rem, 1.8cqmin, 0.3rem);
+  color: var(--tile-ink);
+  text-align: center;
+}
+
+.leaders__empty {
+  flex: 0 0 auto;
+  margin: 0;
+  font-family: "Archivo Black", "Outfit", sans-serif;
+  font-size: clamp(0.58rem, 6cqmin, 0.95rem);
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+}
+
+.leaders__empty {
+  color: var(--tile-muted);
+}
+
+.leaders__podium {
+  position: relative;
+  flex: 0 0 auto;
+  width: min(100%, 114cqmin);
+  aspect-ratio: 14 / 9;
+  max-height: 96%;
+  margin: auto;
+  padding: 0;
+  list-style: none;
+}
+
+.leaders__spot {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+}
+
+.leaders__spot--gold {
+  top: 0;
+  left: 50%;
+  z-index: 3;
+  width: 54%;
+  transform: translateX(-50%);
+}
+
+.leaders__spot--silver {
+  top: 20%;
+  right: 0;
+  z-index: 2;
+  width: 40%;
+}
+
+.leaders__spot--bronze {
+  top: 20%;
+  left: 0;
+  z-index: 1;
+  width: 40%;
+}
+
+.leaders__badge {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 512 / 464;
+  animation: leaders-in 640ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.leaders__spot--gold .leaders__badge {
+  animation-delay: 80ms;
+}
+
+.leaders__spot--silver .leaders__badge {
+  animation-delay: 160ms;
+}
+
+.leaders__spot--bronze .leaders__badge {
+  animation-delay: 40ms;
+}
+
+.leaders__portrait {
+  position: absolute;
+  top: 12%;
+  left: 21.1%;
+  z-index: 1;
+  overflow: hidden;
+  width: 57.2%;
+  height: 63.1%;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--tile-ink) 12%, transparent);
+}
+
+.leaders__portrait .friend-avatar {
+  width: 100%;
+  height: 100%;
+  font-size: clamp(0.8rem, 7.5cqmin, 1.45rem);
+}
+
+.leaders__wreath {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+  animation: leaders-metal 3.8s ease-in-out 0.7s infinite;
+}
+
+.leaders__spot--gold .leaders__wreath {
+  animation-name: leaders-metal-gold;
+  filter: drop-shadow(0 0 0.28rem rgba(255, 214, 96, 0.28));
+}
+
+.leaders__spot--silver .leaders__wreath {
+  animation-duration: 4.6s;
+  animation-delay: 1.3s;
+  filter: drop-shadow(0 0 0.22rem rgba(214, 224, 236, 0.22));
+}
+
+.leaders__spot--bronze .leaders__wreath {
+  animation-duration: 5.2s;
+  animation-delay: 2.1s;
+  filter: drop-shadow(0 0 0.2rem rgba(176, 92, 42, 0.2));
+}
+
+.leaders__gleam {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(
+    118deg,
+    transparent 32%,
+    rgba(255, 255, 255, 0) 40%,
+    rgba(255, 255, 255, 0.72) 50%,
+    rgba(255, 255, 255, 0) 60%,
+    transparent 68%
+  );
+  background-size: 240% 100%;
+  background-position: 120% 0;
+  mix-blend-mode: soft-light;
+  -webkit-mask-image: var(--wreath);
+  mask-image: var(--wreath);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  animation: leaders-gleam 4.8s ease-in-out 1.1s infinite;
+}
+
+.leaders__spot--silver .leaders__gleam {
+  animation-duration: 5.4s;
+  animation-delay: 2.4s;
+  opacity: 0.78;
+}
+
+.leaders__spot--bronze .leaders__gleam {
+  animation-duration: 6s;
+  animation-delay: 3.4s;
+  opacity: 0.55;
+}
+
+.leaders__meta {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  margin-top: -0.28rem;
+}
+
+.leaders__name,
+.leaders__time {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.leaders__name {
+  font-family: "Space Grotesk", "Outfit", sans-serif;
+  font-size: clamp(0.5rem, 4.8cqmin, 0.78rem);
+  font-weight: 700;
+}
+
+.leaders__spot--gold .leaders__name {
+  font-size: clamp(0.56rem, 5.4cqmin, 0.9rem);
+}
+
+.leaders__time {
+  color: var(--tile-muted);
+  font-family: "Space Grotesk", "Outfit", sans-serif;
+  font-size: clamp(0.7rem, 7.4cqmin, 1.2rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.leaders__spot--gold .leaders__time {
+  font-size: clamp(0.82rem, 8.6cqmin, 1.4rem);
+}
+
+@keyframes leaders-in {
+  from {
+    opacity: 0;
+    transform: scale(0.86) translateY(0.35rem);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes leaders-metal {
+  0%,
+  100% {
+    filter: brightness(1) saturate(1) drop-shadow(0 0 0.18rem rgba(214, 224, 236, 0.18));
+  }
+  50% {
+    filter: brightness(1.1) saturate(1.04) drop-shadow(0 0 0.38rem rgba(232, 240, 248, 0.36));
+  }
+}
+
+@keyframes leaders-metal-gold {
+  0%,
+  100% {
+    filter: brightness(1) saturate(1) drop-shadow(0 0 0.22rem rgba(255, 214, 96, 0.26));
+  }
+  42% {
+    filter: brightness(1.08) saturate(1.06) drop-shadow(0 0 0.4rem rgba(255, 220, 120, 0.4));
+  }
+  54% {
+    filter: brightness(1.2) saturate(1.1) drop-shadow(0 0 0.62rem rgba(255, 236, 160, 0.55));
+  }
+  68% {
+    filter: brightness(1.06) saturate(1.04) drop-shadow(0 0 0.32rem rgba(255, 220, 120, 0.32));
+  }
+}
+
+@keyframes leaders-gleam {
+  0%,
+  62%,
+  100% {
+    background-position: 120% 0;
+    opacity: 0.15;
+  }
+  72% {
+    background-position: 50% 0;
+    opacity: 1;
+  }
+  84% {
+    background-position: -20% 0;
+    opacity: 0.2;
+  }
+}
+
 .history-list,
 .history-attempts,
 .history-detail,
@@ -1478,7 +1747,10 @@ button.cube-copy--hit:focus-visible {
   .multi-winner__name,
   .multi-winner__time,
   .multi-winner__burst span,
-  .multi-rank.is-winner .friend-avatar {
+  .multi-rank.is-winner .friend-avatar,
+  .leaders__badge,
+  .leaders__wreath,
+  .leaders__gleam {
     animation: none;
   }
 }
@@ -1492,12 +1764,29 @@ button.cube-copy--hit:focus-visible {
   background: color-mix(in srgb, var(--tile-ink) 14%, transparent);
 }
 
-.friend-avatar--initial {
+.friend-avatar--default {
   display: grid;
-  place-items: center;
-  font-size: clamp(0.72rem, 5cqmin, 0.95rem);
-  font-weight: 700;
-  text-transform: lowercase;
+  place-items: end center;
+  overflow: hidden;
+  color: color-mix(in srgb, var(--tile-ink) 68%, transparent);
+  background:
+    radial-gradient(
+      circle at 50% 36%,
+      color-mix(in srgb, var(--tile-ink) 22%, transparent),
+      color-mix(in srgb, var(--tile-ink) 10%, transparent) 72%
+    );
+}
+
+.friend-avatar--default svg {
+  width: 78%;
+  height: 78%;
+  margin-bottom: 1%;
+}
+
+.profile-avatar__initial svg {
+  width: 72%;
+  height: 72%;
+  color: color-mix(in srgb, var(--tile-ink) 70%, transparent);
 }
 
 .friends-list__items--pending {

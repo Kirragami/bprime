@@ -20,3 +20,8 @@ type BestTime struct {
 	TimeMs    int64  `json:"timeMs"`
 	CreatedAt string `json:"createdAt"`
 }
+
+type Leader struct {
+	User   User  `json:"user"`
+	TimeMs int64 `json:"timeMs"`
+}

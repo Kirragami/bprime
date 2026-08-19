@@ -87,6 +87,15 @@ func (h *Handler) GetMeasuring(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, item)
 }
 
+func (h *Handler) ListLeaders(w http.ResponseWriter, r *http.Request) {
+	items, err := h.measurings.Leaders(r.Context(), 3)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load leaders")
+		return
+	}
+	writeJSON(w, http.StatusOK, items)
+}
+
 func (h *Handler) ListBestTimes(w http.ResponseWriter, r *http.Request) {
 	user, ok := h.userFromRequest(r)
 	if !ok {

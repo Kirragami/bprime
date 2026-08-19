@@ -26,6 +26,7 @@ import { useFriends } from "../../hooks/useFriends";
 import { getLobby, type Lobby, type LobbyMember } from "../../api/lobbies";
 import { saveMeasuring, type SavedAttempt, type SavedMeasuring } from "../../api/measurings";
 import { BestTimes } from "../game/BestTimes";
+import { Leaders } from "../game/Leaders";
 import { GameModes } from "../game/GameModes";
 import { HistoryAttemptDetail } from "../game/HistoryAttemptDetail";
 import { HistoryAttempts } from "../game/HistoryAttempts";
@@ -51,6 +52,7 @@ import { averageOfFive, formatTime } from "../../game/ao5";
 import { hasAttempt, isLobbyHost, lobbyCanStart, lobbyInvite, lobbyMember, memberAttempts } from "../../game/lobby";
 import { formatRecordWhen } from "../../game/when";
 import { useBestTimes } from "../../hooks/useBestTimes";
+import { useLeaders } from "../../hooks/useLeaders";
 import { useHistory } from "../../hooks/useHistory";
 import { useLobby } from "../../hooks/useLobby";
 import { useMultiTimer } from "../../hooks/useMultiTimer";
@@ -89,6 +91,7 @@ export function CubeBoard() {
   const soloPrefs = useSoloSettings();
   const solo = useSoloSession(soloLive, soloPrefs.lookSec);
   const bests = useBestTimes(Boolean(auth.user));
+  const leaders = useLeaders();
   const history = useHistory(Boolean(auth.user));
   const lobby = useLobby(Boolean(auth.user));
   const [historySession, setHistorySession] = useState<SavedMeasuring | null>(null);
@@ -296,7 +299,7 @@ export function CubeBoard() {
     setSavePending(true);
     try {
       await saveMeasuring("solo", solo.attempts);
-      await Promise.all([bests.refresh(), history.refresh()]);
+      await Promise.all([bests.refresh(), leaders.refresh(), history.refresh()]);
       await leaveSolo();
     } finally {
       setSavePending(false);
@@ -378,6 +381,7 @@ export function CubeBoard() {
       if (notify) {
         void history.refresh();
         void bests.refresh();
+        void leaders.refresh();
       }
     } finally {
       setHeldLobby(null);
@@ -494,6 +498,7 @@ export function CubeBoard() {
     }
     void history.refresh();
     void bests.refresh();
+    void leaders.refresh();
     if (memberAttempts(lobbyMember(lobby.lobby, auth.user?.id)).length < 5) {
       void leaveMulti(true);
     }
@@ -828,6 +833,9 @@ export function CubeBoard() {
         }
         if (slot === "bests") {
           return <BestTimes times={bests.times} />;
+        }
+        if (slot === "leaders") {
+          return <Leaders entries={leaders.entries} />;
         }
         if (slot === "solo-title") {
           return <SoloTitle />;

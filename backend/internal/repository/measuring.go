@@ -276,6 +276,47 @@ func (r *MeasuringRepository) BestTimes(ctx context.Context, userID int64, limit
 	return items, rows.Err()
 }
 
+func (r *MeasuringRepository) Leaders(ctx context.Context, limit int) ([]models.Leader, error) {
+	if limit < 1 {
+		limit = 3
+	}
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT u.id, u.username, u.created_at, u.avatar_url, MIN(m.average_ms)
+		FROM users u
+		JOIN measurings m ON m.user_id = u.id
+		WHERE m.average_ms > 0
+			AND (SELECT COUNT(*) FROM attempts a WHERE a.measuring_id = m.id) = 5
+		GROUP BY u.id, u.username, u.created_at, u.avatar_url
+		ORDER BY MIN(m.average_ms) ASC, u.username COLLATE NOCASE
+		LIMIT ?
+	`, limit)
+	if err != nil {
+		return nil, fmt.Errorf("list leaders: %w", err)
+	}
+	defer rows.Close()
+
+	items := make([]models.Leader, 0, limit)
+	for rows.Next() {
+		var item models.Leader
+		var avatar sql.NullString
+		if err := rows.Scan(
+			&item.User.ID,
+			&item.User.Username,
+			&item.User.CreatedAt,
+			&avatar,
+			&item.TimeMs,
+		); err != nil {
+			return nil, fmt.Errorf("scan leader: %w", err)
+		}
+		if avatar.Valid {
+			item.User.AvatarURL = avatar.String
+		}
+		item.User.BestMs = item.TimeMs
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
 func ao5(attempts []models.Attempt) int64 {
 	times := make([]int64, len(attempts))
 	for i, attempt := range attempts {

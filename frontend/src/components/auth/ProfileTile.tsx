@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ChangeEvent, type Po
 import { mediaUrl } from "../../api/client";
 import { formatTime } from "../../game/ao5";
 import type { User } from "../../types";
+import { PersonMark } from "../friends/DefaultAvatar";
 
 const maxAvatarBytes = 5 * 1024 * 1024;
 const exportSize = 512;
@@ -51,7 +52,6 @@ export function ProfileTile({ user, bestMs, onUpload, errorMessage }: ProfileTil
   const [draft, setDraft] = useState<Draft | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const initial = user.username.slice(0, 1).toLowerCase();
   const label = user.avatarUrl ? "change photo" : "set photo";
 
   useEffect(() => {
@@ -227,7 +227,9 @@ export function ProfileTile({ user, bestMs, onUpload, errorMessage }: ProfileTil
             {user.avatarUrl ? (
               <img src={mediaUrl(user.avatarUrl)} alt="" />
             ) : (
-              <span className="profile-avatar__initial">{initial}</span>
+              <span className="profile-avatar__initial">
+                <PersonMark />
+              </span>
             )}
           </span>
           <span className="profile-avatar__veil">

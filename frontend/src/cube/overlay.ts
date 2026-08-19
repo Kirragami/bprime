@@ -100,7 +100,7 @@ export function overlayFor(screen: BoardScreen): Overlay {
       ? ["login", "tagline", "register-cta"]
       : screen.top === "register"
         ? ["register", "register-tagline", "login-cta"]
-        : ["profile", null, "history"]);
+        : ["profile", "leaders", "history"]);
 
   const middle: RowSlots =
     screen.middle === "friends"
@@ -112,7 +112,9 @@ export function overlayFor(screen: BoardScreen): Overlay {
       ? [null, null, "settings"]
       : screen.bottom === "menu"
         ? ["settings-back", null, "logout"]
-        : [null, null, null];
+        : screen.top === "login" || screen.top === "register"
+          ? ["leaders", null, null]
+          : [null, null, null];
 
   return [...top, ...middle, ...bottom];
 }

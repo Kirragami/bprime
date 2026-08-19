@@ -16,6 +16,7 @@ export function CubeCell({ cell, slot = null, active = false, renderSlot }: Cube
     slot === "solo-preview" ||
     slot === "solo-scramble" ||
     slot === "bests" ||
+    slot === "leaders" ||
     slot === "history" ||
     slot === "history-multi" ||
     slot === "history-players" ||

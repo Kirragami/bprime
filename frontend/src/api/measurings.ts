@@ -1,5 +1,6 @@
 import { request } from "./client";
 import type { Attempt } from "../game/ao5";
+import type { User } from "../types";
 
 export type SavedAttempt = {
   index: number;
@@ -30,8 +31,17 @@ export function getMeasuring(id: number) {
   return request<SavedMeasuring>(`/api/measurings/${id}`);
 }
 
+export type Leader = {
+  user: User;
+  timeMs: number;
+};
+
 export function listBestTimes() {
   return request<BestTime[]>("/api/measurings/bests");
+}
+
+export function listLeaders() {
+  return request<Leader[]>("/api/leaders");
 }
 
 export function saveMeasuring(mode: "solo" | "multi", attempts: Attempt[]) {
