@@ -37,6 +37,9 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export function mediaUrl(path: string) {
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    return path;
+  }
   return `${API_BASE}${path}`;
 }
 

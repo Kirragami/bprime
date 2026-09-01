@@ -15,6 +15,7 @@ export type User = {
   avatarUrl?: string;
   createdAt: string;
   bestMs?: number;
+  needsUsername?: boolean;
 };
 
 export type FriendRequest = {

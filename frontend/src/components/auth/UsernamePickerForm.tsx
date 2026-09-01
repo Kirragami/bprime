@@ -1,27 +1,36 @@
 import { useState } from "react";
-import { GoogleSignInButton } from "./GoogleSignInButton";
+import { mediaUrl } from "../../api/client";
+import { DefaultAvatar } from "../friends/DefaultAvatar";
+import type { User } from "../../types";
 
-type LoginFormProps = {
+type UsernamePickerFormProps = {
+  user: User;
   pending?: boolean;
   error?: string | null;
-  onSubmit: (username: string, password: string) => Promise<void>;
+  onSubmit: (username: string) => Promise<void>;
 };
 
-export function LoginForm({ pending = false, error, onSubmit }: LoginFormProps) {
+export function UsernamePickerForm({ user, pending = false, error, onSubmit }: UsernamePickerFormProps) {
   const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
 
   return (
     <form
-      className="login-form"
+      className="login-form login-form--picker"
       autoComplete="off"
       spellCheck={false}
       onSubmit={(event) => {
         event.preventDefault();
-        void onSubmit(username, password);
+        void onSubmit(username);
       }}
     >
-      <p className="login-form__title">sign in</p>
+      <p className="login-form__title">pick username</p>
+      <div className="login-form__avatar" aria-hidden="true">
+        {user.avatarUrl ? (
+          <img src={mediaUrl(user.avatarUrl)} alt="" />
+        ) : (
+          <DefaultAvatar />
+        )}
+      </div>
       <input
         type="text"
         name="username"
@@ -37,24 +46,10 @@ export function LoginForm({ pending = false, error, onSubmit }: LoginFormProps) 
         data-form-type="other"
         disabled={pending}
       />
-      <input
-        type="password"
-        name="password"
-        placeholder="password"
-        value={password}
-        onChange={(event) => setPassword(event.target.value)}
-        autoComplete="off"
-        spellCheck={false}
-        data-lpignore="true"
-        data-1p-ignore="true"
-        data-form-type="other"
-        disabled={pending}
-      />
       {error ? <p className="login-form__error">{error}</p> : null}
       <button type="submit" className="login-form__submit" disabled={pending}>
-        login
+        continue
       </button>
-      <GoogleSignInButton disabled={pending} />
     </form>
   );
 }

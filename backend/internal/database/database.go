@@ -155,6 +155,56 @@ CREATE TABLE IF NOT EXISTS lobby_clocks (
 	if err := migrateFriendships(db); err != nil {
 		return err
 	}
+	if err := migrateGoogleAuth(db); err != nil {
+		return err
+	}
+	return nil
+}
+
+func migrateGoogleAuth(db *sql.DB) error {
+	rows, err := db.Query(`PRAGMA table_info(users)`)
+	if err != nil {
+		return fmt.Errorf("inspect users: %w", err)
+	}
+	defer rows.Close()
+
+	hasGoogleID := false
+	hasNeedsUsername := false
+	for rows.Next() {
+		var cid int
+		var name, colType string
+		var notNull, pk int
+		var dflt sql.NullString
+		if err := rows.Scan(&cid, &name, &colType, &notNull, &dflt, &pk); err != nil {
+			return fmt.Errorf("scan users column: %w", err)
+		}
+		switch name {
+		case "google_id":
+			hasGoogleID = true
+		case "needs_username":
+			hasNeedsUsername = true
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate users columns: %w", err)
+	}
+
+	if !hasGoogleID {
+		if _, err := db.Exec(`ALTER TABLE users ADD COLUMN google_id TEXT`); err != nil {
+			return fmt.Errorf("add users.google_id: %w", err)
+		}
+	}
+	if !hasNeedsUsername {
+		if _, err := db.Exec(`ALTER TABLE users ADD COLUMN needs_username INTEGER NOT NULL DEFAULT 0`); err != nil {
+			return fmt.Errorf("add users.needs_username: %w", err)
+		}
+	}
+	if _, err := db.Exec(`
+		CREATE UNIQUE INDEX IF NOT EXISTS users_google_id_idx
+		ON users (google_id) WHERE google_id IS NOT NULL
+	`); err != nil {
+		return fmt.Errorf("ensure users_google_id_idx: %w", err)
+	}
 	return nil
 }
 

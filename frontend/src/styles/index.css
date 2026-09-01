@@ -2113,6 +2113,64 @@ button.friends-list__open:focus-visible {
   opacity: 0.7;
 }
 
+.login-form__divider {
+  margin: 0.35rem 0 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  color: color-mix(in srgb, var(--tile-ink) 72%, transparent);
+}
+
+.login-form__google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  width: 100%;
+  min-height: 45px;
+  padding: 0 1rem;
+  border: 1px solid color-mix(in srgb, var(--tile-ink) 18%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--tile-ink) 6%, transparent);
+  color: var(--tile-ink);
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.login-form__google-icon {
+  flex: 0 0 auto;
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.login-form__google:hover {
+  filter: brightness(0.92);
+}
+
+.login-form__google--disabled {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.login-form--picker .login-form__avatar {
+  width: 4.5rem;
+  height: 4.5rem;
+  margin: 0 auto 0.35rem;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.login-form--picker .login-form__avatar img,
+.login-form--picker .login-form__avatar .friend-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .login-form__register:hover {
   color: var(--tile-ink);
 }

@@ -12,19 +12,23 @@ import (
 )
 
 type Handler struct {
-	db           *sql.DB
-	items        *repository.ItemRepository
-	users        *repository.UserRepository
-	sessions     *repository.SessionRepository
-	friends      *repository.FriendRepository
-	measurings   *repository.MeasuringRepository
-	lobbies      *repository.LobbyRepository
-	events       *realtime.Hub
-	limiter      *auth.Limiter
-	dummyHash    string
-	sessionTTL   time.Duration
-	cookieSecure bool
-	uploadDir    string
+	db                 *sql.DB
+	items              *repository.ItemRepository
+	users              *repository.UserRepository
+	sessions           *repository.SessionRepository
+	friends            *repository.FriendRepository
+	measurings         *repository.MeasuringRepository
+	lobbies            *repository.LobbyRepository
+	events             *realtime.Hub
+	limiter            *auth.Limiter
+	dummyHash          string
+	sessionTTL         time.Duration
+	cookieSecure       bool
+	uploadDir          string
+	googleClientID     string
+	googleClientSecret string
+	googleRedirectURL  string
+	appOrigin          string
 }
 
 func New(
@@ -49,12 +53,16 @@ func New(
 		sessions:     sessions,
 		friends:      friends,
 		measurings:   repository.NewMeasuringRepository(db),
-		lobbies:      repository.NewLobbyRepository(db, friends),
-		events:       realtime.NewHub(),
-		limiter:      auth.NewLimiter(authRateLimit, authRateWindow),
-		dummyHash:    dummyHash,
-		sessionTTL:   cfg.SessionTTL,
-		cookieSecure: cfg.CookieSecure,
-		uploadDir:    cfg.UploadDir,
+		lobbies:            repository.NewLobbyRepository(db, friends),
+		events:             realtime.NewHub(),
+		limiter:            auth.NewLimiter(authRateLimit, authRateWindow),
+		dummyHash:          dummyHash,
+		sessionTTL:         cfg.SessionTTL,
+		cookieSecure:       cfg.CookieSecure,
+		uploadDir:          cfg.UploadDir,
+		googleClientID:     cfg.GoogleClientID,
+		googleClientSecret: cfg.GoogleClientSecret,
+		googleRedirectURL:  cfg.GoogleRedirectURL,
+		appOrigin:          cfg.AppOrigin,
 	}
 }

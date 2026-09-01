@@ -30,3 +30,12 @@ export function uploadAvatar(file: File) {
   body.append("file", file);
   return upload<User>("/api/me/avatar", body);
 }
+
+export function completeUsername(username: string) {
+  return request<User>("/api/me/username", {
+    method: "POST",
+    body: JSON.stringify({ username }),
+  });
+}
+
+export const googleAuthUrl = "/api/auth/google";

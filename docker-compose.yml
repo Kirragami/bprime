@@ -8,7 +8,11 @@ services:
       UPLOAD_DIR: /data/avatars
       STATIC_DIR: /app/web
       CORS_ORIGIN: http://localhost:8081
+      APP_ORIGIN: http://localhost:8081
       COOKIE_SECURE: "false"
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URL: ${GOOGLE_REDIRECT_URL:-http://localhost:8081/api/auth/google/callback}
     volumes:
       - ./data:/data
       - ./data/avatars:/data/avatars

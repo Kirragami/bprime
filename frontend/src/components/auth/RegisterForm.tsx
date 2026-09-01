@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { GoogleSignInButton } from "./GoogleSignInButton";
 
 type RegisterFormProps = {
   pending?: boolean;
@@ -53,6 +54,7 @@ export function RegisterForm({ pending = false, error, onSubmit }: RegisterFormP
       <button type="submit" className="login-form__submit" disabled={pending}>
         create
       </button>
+      <GoogleSignInButton disabled={pending} />
     </form>
   );
 }

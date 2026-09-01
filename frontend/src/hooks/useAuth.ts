@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { getMe, login, logout, register, uploadAvatar } from "../api/auth";
+import { completeUsername, getMe, login, logout, register, uploadAvatar } from "../api/auth";
 import { ApiError } from "../api/client";
 import type { User } from "../types";
 
@@ -65,5 +65,11 @@ export function useAuth() {
     return data;
   }, []);
 
-  return { user, loading, signIn, signUp, signOut, setAvatar, errorMessage };
+  const pickUsername = useCallback(async (username: string) => {
+    const data = await completeUsername(username);
+    setUser(data);
+    return data;
+  }, []);
+
+  return { user, loading, signIn, signUp, signOut, setAvatar, pickUsername, errorMessage };
 }

@@ -72,7 +72,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, user)
+	writeJSON(w, http.StatusCreated, userResponse(user))
 }
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
@@ -92,7 +92,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		hash = record.PasswordHash
 	}
 
-	if !auth.CheckPassword(hash, req.Password) || err != nil {
+	if !auth.CheckPassword(hash, req.Password) || err != nil || record.NeedsUsername || record.PasswordHash == "" {
 		writeError(w, http.StatusUnauthorized, "invalid username or password")
 		return
 	}
@@ -102,7 +102,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, record.User)
+	writeJSON(w, http.StatusOK, userResponse(record.User))
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
@@ -119,7 +119,53 @@ func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "not signed in")
 		return
 	}
-	writeJSON(w, http.StatusOK, user)
+	writeJSON(w, http.StatusOK, userResponse(user))
+}
+
+func (h *Handler) CompleteUsername(w http.ResponseWriter, r *http.Request) {
+	user, ok := h.userFromRequest(r)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "not signed in")
+		return
+	}
+	if !user.NeedsUsername {
+		writeError(w, http.StatusBadRequest, "username already set")
+		return
+	}
+
+	var req struct {
+		Username string `json:"username"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid json")
+		return
+	}
+	req.Username = strings.TrimSpace(req.Username)
+
+	if err := validateUsername(req.Username); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if strings.HasPrefix(strings.ToLower(req.Username), "pending_") {
+		writeError(w, http.StatusBadRequest, "username can only use letters, numbers, and _")
+		return
+	}
+
+	updated, err := h.users.CompleteUsername(r.Context(), user.ID, req.Username)
+	if errors.Is(err, repository.ErrUsernameTaken) {
+		writeError(w, http.StatusConflict, "username taken")
+		return
+	}
+	if errors.Is(err, repository.ErrUsernameNotPending) {
+		writeError(w, http.StatusBadRequest, "username already set")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "could not set username")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, userResponse(updated))
 }
 
 func (h *Handler) allowAuth(r *http.Request) bool {

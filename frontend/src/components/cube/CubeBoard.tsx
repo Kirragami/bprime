@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { LoginForm } from "../auth/LoginForm";
 import { ProfileTile } from "../auth/ProfileTile";
 import { RegisterForm } from "../auth/RegisterForm";
+import { UsernamePickerForm } from "../auth/UsernamePickerForm";
 import {
   LOGGED_OUT_SCREEN,
   colSlots,
@@ -86,6 +87,7 @@ export function CubeBoard() {
   const [incomingSlots, setIncomingSlots] = useState<RowSlots | undefined>();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [registerError, setRegisterError] = useState<string | null>(null);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
   const [formPending, setFormPending] = useState(false);
   const [savePending, setSavePending] = useState(false);
   const [soloLive, setSoloLive] = useState(false);
@@ -457,6 +459,10 @@ export function CubeBoard() {
       revealedRef.current = false;
       return;
     }
+    if (auth.user.needsUsername) {
+      revealedRef.current = false;
+      return;
+    }
     if (revealedRef.current) {
       return;
     }
@@ -514,6 +520,18 @@ export function CubeBoard() {
       await auth.signIn(username, password);
     } catch (err) {
       setLoginError(auth.errorMessage(err));
+    } finally {
+      setFormPending(false);
+    }
+  }
+
+  async function handlePickUsername(username: string) {
+    setFormPending(true);
+    setUsernameError(null);
+    try {
+      await auth.pickUsername(username);
+    } catch (err) {
+      setUsernameError(auth.errorMessage(err));
     } finally {
       setFormPending(false);
     }
@@ -680,6 +698,16 @@ export function CubeBoard() {
       incomingSlots={incomingSlots}
       renderSlot={(slot) => {
         if (slot === "login") {
+          if (auth.user?.needsUsername) {
+            return (
+              <UsernamePickerForm
+                user={auth.user}
+                pending={formPending}
+                error={usernameError}
+                onSubmit={handlePickUsername}
+              />
+            );
+          }
           return (
             <LoginForm
               pending={formPending}

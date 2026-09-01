@@ -33,7 +33,7 @@ func (r *SessionRepository) Create(ctx context.Context, tokenHash string, userID
 
 func (r *SessionRepository) UserForToken(ctx context.Context, tokenHash string, now time.Time) (models.User, error) {
 	user, err := scanUser(r.db.QueryRowContext(ctx, `
-		SELECT users.id, users.username, users.created_at, users.avatar_url
+		SELECT users.id, users.username, users.created_at, users.avatar_url, users.needs_username
 		FROM sessions
 		JOIN users ON users.id = sessions.user_id
 		WHERE sessions.token_hash = ?
