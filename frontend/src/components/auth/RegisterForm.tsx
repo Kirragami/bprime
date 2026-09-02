@@ -51,10 +51,12 @@ export function RegisterForm({ pending = false, error, onSubmit }: RegisterFormP
         disabled={pending}
       />
       {error ? <p className="login-form__error">{error}</p> : null}
-      <button type="submit" className="login-form__submit" disabled={pending}>
+      <div className="auth-login">
+        <button type="submit" className="login-form__submit" disabled={pending}>
         create
       </button>
       <GoogleSignInButton disabled={pending} />
+      </div>
     </form>
   );
 }

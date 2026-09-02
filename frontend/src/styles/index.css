@@ -2104,6 +2104,14 @@ button.friends-list__open:focus-visible {
   cursor: pointer;
 }
 
+.auth-login{
+  width: auto;
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  align-items: center;
+}
+
 .login-form__submit:hover:not(:disabled) {
   filter: brightness(0.92);
 }

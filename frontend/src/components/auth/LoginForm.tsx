@@ -51,10 +51,12 @@ export function LoginForm({ pending = false, error, onSubmit }: LoginFormProps) 
         disabled={pending}
       />
       {error ? <p className="login-form__error">{error}</p> : null}
-      <button type="submit" className="login-form__submit" disabled={pending}>
-        login
-      </button>
-      <GoogleSignInButton disabled={pending} />
+      <div className="auth-login">
+        <button type="submit" className="login-form__submit" disabled={pending}>
+          login
+        </button>
+        <GoogleSignInButton disabled={pending} />
+      </div>
     </form>
   );
 }

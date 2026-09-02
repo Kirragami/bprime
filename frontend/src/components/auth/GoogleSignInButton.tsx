@@ -42,7 +42,7 @@ export function GoogleSignInButton({ disabled = false }: GoogleSignInButtonProps
         }}
       >
         <GoogleLogo />
-        <span>continue with google</span>
+        <span>Use Google</span>
       </a>
     </>
   );
